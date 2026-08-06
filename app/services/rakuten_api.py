@@ -70,6 +70,7 @@ class RakutenAPIClient:
 
         params: dict[str, Any] = {
             "applicationId": self.settings.rakuten_application_id,
+            "accessKey": self.settings.rakuten_access_key,
             "format": "json",
             "formatVersion": 2,
             "hits": criteria.hits,
@@ -116,7 +117,7 @@ class RakutenAPIClient:
         safe_log = {
             key: value
             for key, value in params.items()
-            if key not in {"applicationId", "affiliateId"}
+            if key not in {"applicationId", "accessKey", "affiliateId"}
         }
         for attempt in range(self._max_retries + 1):
             logger.info("楽天商品検索APIを呼び出します: %s", safe_log)
@@ -149,6 +150,11 @@ class RakutenAPIClient:
                 raise RakutenAPIError(
                     "楽天APIが一時的に利用できません。時間をおいて再試行してください。"
                 )
+            if response.status_code == 403:
+                raise RakutenAPIError(
+                    "楽天APIの認証に失敗しました（403）。App IDとAccess Keyの組み合わせ、"
+                    "アプリの利用許可設定を確認してください。"
+                )
             if response.status_code >= 400:
                 description = ""
                 try:
@@ -156,8 +162,9 @@ class RakutenAPIClient:
                 except (ValueError, AttributeError):
                     pass
                 logger.warning("楽天APIエラー status=%s", response.status_code)
+                detail = f" {description}" if description else ""
                 raise RakutenAPIError(
-                    f"楽天APIが検索条件を受け付けませんでした（{response.status_code}）。{description}"
+                    f"楽天APIが検索条件を受け付けませんでした（{response.status_code}）。{detail}"
                 )
             try:
                 return dict(response.json())
