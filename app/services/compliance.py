@@ -147,7 +147,12 @@ def check_content(
                     "商品を差し替えるか在庫復活後に再確認してください。",
                 )
             )
-        if product.sale_end and product.sale_end < now:
+        sale_end = product.sale_end
+        if sale_end and sale_end.tzinfo is None:
+            # SQLite may return a timezone-aware column as a naive datetime.
+            # Treat legacy values as the app's current local timezone before comparison.
+            sale_end = sale_end.replace(tzinfo=now.tzinfo)
+        if sale_end and sale_end < now:
             issues.append(
                 ComplianceIssue(
                     "blocking",
