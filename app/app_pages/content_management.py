@@ -28,6 +28,17 @@ STATUSES = [
     "archived",
 ]
 
+STATUS_LABELS = {
+    "idea": "アイデア",
+    "drafting": "下書き中",
+    "review": "確認待ち",
+    "approved": "承認済み",
+    "scheduled": "投稿予定",
+    "published": "投稿済み",
+    "update_required": "更新が必要",
+    "archived": "保管済み",
+}
+
 with session_scope() as session:
     contents = list_contents(session)
     weekly_plan = get_setting(session, "weekly_plan", DEFAULT_WEEKLY_PLAN)
@@ -42,7 +53,7 @@ else:
                 "媒体": content.channel,
                 "テーマ": content.theme,
                 "タイトル": content.title,
-                "ステータス": content.status,
+                "ステータス": STATUS_LABELS.get(content.status, content.status),
                 "チェック": content.compliance_status,
                 "更新日": content.updated_at,
                 "投稿URL": content.published_url,
@@ -73,7 +84,12 @@ else:
         initial_body = content.approved_body or content.draft_body
         with st.form("content_review_form"):
             approved_body = st.text_area("確認・修正済み本文", value=initial_body, height=500)
-            status = st.selectbox("ステータス", STATUSES, index=STATUSES.index(content.status))
+            status = st.selectbox(
+                "ステータス",
+                STATUSES,
+                index=STATUSES.index(content.status),
+                format_func=lambda value: STATUS_LABELS.get(value, value),
+            )
             reviewer = st.text_input("確認者", value=content.reviewer)
             work_minutes = st.number_input(
                 "作業時間（分）", min_value=0, value=content.work_minutes
