@@ -6,7 +6,7 @@ import pandas as pd
 import streamlit as st
 
 from app.database import session_scope
-from app.repositories import get_product, list_products, upsert_experience
+from app.repositories import delete_product, get_product, list_products, upsert_experience
 from app.schemas import ExperienceInput
 
 with session_scope() as session:
@@ -22,6 +22,8 @@ selected_id = st.selectbox(
     format_func=lambda product_id: next(p.item_name for p in products if p.id == product_id),
 )
 
+delete_requested = False
+selected_product_name = ""
 with session_scope() as session:
     product = get_product(session, int(selected_id))
     assert product is not None
@@ -124,4 +126,32 @@ with session_scope() as session:
         )
         upsert_experience(session, product.id, payload)
         st.success("体験情報を保存しました。")
+        st.rerun()
+
+    st.divider()
+    with st.expander("保存商品を削除", icon=":material/delete:"):
+        st.warning(
+            "削除すると、この商品の体験情報も削除されます。過去の投稿本文と成果履歴は残ります。",
+            icon=":material/warning:",
+        )
+        confirm_delete = st.checkbox(
+            f"「{product.item_name}」を削除することを確認しました",
+            key=f"confirm_product_delete_{product.id}",
+        )
+        delete_requested = st.button(
+            "この保存商品を削除",
+            icon=":material/delete_forever:",
+            disabled=not confirm_delete,
+            key=f"delete_product_{product.id}",
+        )
+        selected_product_name = product.item_name
+
+if delete_requested:
+    with session_scope() as session:
+        deleted = delete_product(session, int(selected_id))
+    if deleted:
+        st.success(f"「{selected_product_name}」を保存商品から削除しました。")
+        st.rerun()
+    else:
+        st.warning("商品はすでに削除されています。画面を更新します。")
         st.rerun()
