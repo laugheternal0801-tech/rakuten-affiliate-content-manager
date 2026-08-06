@@ -3,10 +3,10 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Any
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, delete, func, select, update
 from sqlalchemy.orm import Session, selectinload
 
-from app.models import AppSetting, Content, Experience, Performance, Product
+from app.models import AppSetting, Content, ContentProduct, Experience, Performance, Product
 from app.schemas import ExperienceInput
 
 DEFAULT_SCORE_WEIGHTS = {
@@ -66,6 +66,20 @@ def upsert_experience(session: Session, product_id: int, payload: ExperienceInpu
         setattr(experience, key, value)
     session.flush()
     return experience
+
+
+def delete_product(session: Session, product_id: int) -> bool:
+    """Delete a saved product while preserving historical content and performance rows."""
+    product = session.get(Product, product_id)
+    if product is None:
+        return False
+    session.execute(
+        update(Performance).where(Performance.product_id == product_id).values(product_id=None)
+    )
+    session.execute(delete(ContentProduct).where(ContentProduct.product_id == product_id))
+    session.delete(product)
+    session.flush()
+    return True
 
 
 def create_content(
