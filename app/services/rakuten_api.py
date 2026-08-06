@@ -39,6 +39,10 @@ class RakutenAPIError(RuntimeError):
     pass
 
 
+class RakutenAPIAuthenticationError(RakutenAPIError):
+    pass
+
+
 class RakutenAPIClient:
     def __init__(
         self,
@@ -95,7 +99,15 @@ class RakutenAPIClient:
             if cached and now - cached[0] < self.settings.rakuten_api_cache_ttl_seconds:
                 return cached[1]
 
-        payload = self._request(params)
+        affiliate_id_rejected = False
+        try:
+            payload = self._request(params)
+        except RakutenAPIAuthenticationError:
+            if "affiliateId" not in params:
+                raise
+            fallback_params = {key: value for key, value in params.items() if key != "affiliateId"}
+            payload = self._request(fallback_params)
+            affiliate_id_rejected = True
         products = [
             self.normalize_item(item) for item in payload.get("Items", payload.get("items", []))
         ]
@@ -104,6 +116,7 @@ class RakutenAPIClient:
             "products": products,
             "count": int(payload.get("count", len(products))),
             "page": int(payload.get("page", 1)),
+            "affiliate_id_rejected": affiliate_id_rejected,
         }
         with self._lock:
             self._cache[cache_key] = (now, result)
@@ -148,7 +161,7 @@ class RakutenAPIClient:
                     "楽天APIが一時的に利用できません。時間をおいて再試行してください。"
                 )
             if response.status_code == 403:
-                raise RakutenAPIError(
+                raise RakutenAPIAuthenticationError(
                     "楽天APIの認証に失敗しました（403）。App IDとAccess Keyの組み合わせ、"
                     "アプリの利用許可設定を確認してください。"
                 )
