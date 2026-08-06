@@ -1,14 +1,74 @@
 from __future__ import annotations
 
+import re
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from app.models import Experience, Product
 from app.schemas import GeneratedContent
 
 CHANNELS = ["note", "X", "Pinterest", "Instagram", "楽天ROOM"]
+
+TONE_OPTIONS = ["信頼感のある丁寧語", "親しみやすい", "簡潔・端的", "やわらかい共感型"]
+
+APPEAL_POINT_OPTIONS = [
+    "価格",
+    "レビュー評価",
+    "送料",
+    "ポイント倍率",
+    "商品の特徴",
+    "確認済みの体験情報",
+]
+
+CHANNEL_PROFILES: dict[str, dict[str, Any]] = {
+    "note": {
+        "label": "note記事",
+        "description": "比較理由と注意点を整理した、読み応えのある記事を作成します。",
+        "target_length": 1_500,
+        "min_length": 500,
+        "max_length": 5_000,
+        "step": 100,
+        "hashtag_count": 3,
+    },
+    "X": {
+        "label": "X投稿",
+        "description": "結論を先に伝え、商品ページへ自然につなぐ短文を作成します。",
+        "target_length": 180,
+        "min_length": 80,
+        "max_length": 500,
+        "step": 10,
+        "hashtag_count": 2,
+    },
+    "Pinterest": {
+        "label": "Pinterestピン",
+        "description": "検索意図を意識したタイトル・説明文と画像制作メモを作成します。",
+        "target_length": 350,
+        "min_length": 100,
+        "max_length": 1_000,
+        "step": 50,
+        "hashtag_count": 4,
+    },
+    "Instagram": {
+        "label": "Instagram投稿",
+        "description": "保存したくなるキャプションとカルーセル構成案を作成します。",
+        "target_length": 800,
+        "min_length": 300,
+        "max_length": 2_500,
+        "step": 100,
+        "hashtag_count": 6,
+    },
+    "楽天ROOM": {
+        "label": "楽天ROOM紹介文",
+        "description": "商品情報と注意点がすぐ伝わる紹介文を作成します。",
+        "target_length": 350,
+        "min_length": 120,
+        "max_length": 1_000,
+        "step": 50,
+        "hashtag_count": 4,
+    },
+}
 
 
 @dataclass(frozen=True)
@@ -18,12 +78,72 @@ class GenerationContext:
     link_mode: str
     disclosure: str
     pr_required: bool
+    target_audience: str = "商品選びで迷っている人"
+    tone: str = "信頼感のある丁寧語"
+    appeal_points: tuple[str, ...] = ()
+    custom_message: str = ""
+    target_length: int = 0
+    hashtag_count: int = 3
+    variation_index: int = 0
+
+
+@dataclass(frozen=True)
+class CopyAnalysis:
+    character_count: int
+    target_length: int
+    difference: int
+    hashtag_count: int
+    japanese_ratio: float
+    japanese_status: str
+
+    def to_dict(self) -> dict[str, int | float | str]:
+        return {
+            "character_count": self.character_count,
+            "target_length": self.target_length,
+            "difference": self.difference,
+            "hashtag_count": self.hashtag_count,
+            "japanese_ratio": self.japanese_ratio,
+            "japanese_status": self.japanese_status,
+        }
 
 
 class ContentGenerator(ABC):
     @abstractmethod
     def generate(self, channel: str, context: GenerationContext) -> GeneratedContent:
         raise NotImplementedError
+
+    def generate_variations(
+        self, channel: str, context: GenerationContext, count: int
+    ) -> list[GeneratedContent]:
+        safe_count = min(max(int(count), 1), 3)
+        return [
+            self.generate(channel, replace(context, variation_index=index))
+            for index in range(safe_count)
+        ]
+
+
+def analyze_copy(text: str, target_length: int) -> CopyAnalysis:
+    stripped = text.strip()
+    character_count = len(stripped)
+    hashtags = re.findall(r"(?<!\w)#[^\s#]+", stripped)
+    language_sample = re.sub(r"https?://\S+", "", stripped)
+    letters = re.findall(r"[A-Za-z一-龥々〆ヵヶぁ-んァ-ヴー]", language_sample)
+    japanese = re.findall(r"[一-龥々〆ヵヶぁ-んァ-ヴー]", language_sample)
+    ratio = len(japanese) / len(letters) if letters else 0.0
+    if ratio >= 0.7:
+        status = "日本語中心"
+    elif ratio >= 0.4:
+        status = "日本語と英字が混在"
+    else:
+        status = "日本語を確認"
+    return CopyAnalysis(
+        character_count=character_count,
+        target_length=max(0, int(target_length)),
+        difference=character_count - max(0, int(target_length)),
+        hashtag_count=len(hashtags),
+        japanese_ratio=ratio,
+        japanese_status=status,
+    )
 
 
 def _link(product: Product, mode: str) -> str:
@@ -44,26 +164,118 @@ def _fact_summary(product: Product) -> str:
     )
 
 
+def _compact_name(name: str, limit: int = 42) -> str:
+    clean = " ".join(name.split())
+    return clean if len(clean) <= limit else f"{clean[: limit - 1]}…"
+
+
 def _experience_section(product: Product) -> str:
     exp = _experience(product)
     if not exp or exp.has_used is not True:
         return (
             "商品情報を確認した範囲では比較候補です。使用感は未確認のため、"
-            "体験情報を入力してください。"
+            "体験に関する表現は公開前に確認してください。"
         )
     facts = [
-        f"使用期間: {exp.usage_period or '要確認'}",
-        f"使用場面: {exp.usage_scene or '要確認'}",
-        f"よかった点: {exp.positive_points or '要確認'}",
-        f"気になった点: {exp.negative_points or '要確認'}",
+        f"使用期間：{exp.usage_period or '要確認'}",
+        f"使用場面：{exp.usage_scene or '要確認'}",
+        f"よかった点：{exp.positive_points or '要確認'}",
+        f"気になった点：{exp.negative_points or '要確認'}",
     ]
     return "\n".join(facts)
 
 
 def _prefix(context: GenerationContext) -> str:
     if context.pr_required:
-        return "PR\n\n"
-    return f"{context.disclosure}\n\n" if context.disclosure else ""
+        return "【PR】\n\n"
+    return f"{context.disclosure.strip()}\n\n" if context.disclosure.strip() else ""
+
+
+def _appeal_sentences(product: Product, context: GenerationContext) -> list[str]:
+    exp = _experience(product)
+    candidates = {
+        "価格": f"確認時点の価格は{product.item_price:,}円です。",
+        "レビュー評価": (
+            f"レビューは{product.review_count:,}件、平均評価は{product.review_average:.1f}です。"
+        ),
+        "送料": (
+            "送料は無料です。"
+            if product.postage_flag == 0
+            else "送料条件はお届け先を含めて商品ページで確認してください。"
+        ),
+        "ポイント倍率": f"確認時点のポイント倍率は{product.point_rate:g}倍です。",
+        "商品の特徴": product.catchcopy.strip() or "商品の詳しい仕様は商品ページで確認できます。",
+        "確認済みの体験情報": (
+            exp.positive_points.strip()
+            if exp and exp.has_used is True and exp.positive_points.strip()
+            else "使用感は未確認のため、取得した商品情報の範囲で紹介しています。"
+        ),
+    }
+    selected = context.appeal_points or ("価格", "レビュー評価", "送料")
+    return [candidates[point] for point in selected if point in candidates]
+
+
+def _hashtag_token(value: str) -> str:
+    return re.sub(r"[^\w一-龥々〆ヵヶぁ-んァ-ヴー]", "", value.replace("　", ""))
+
+
+def _hashtags(context: GenerationContext, channel: str) -> str:
+    if context.hashtag_count <= 0:
+        return ""
+    channel_tags = {
+        "note": ["楽天市場", "商品比較", "買い物メモ", "暮らしを整える"],
+        "X": ["楽天市場", "商品比較", "買い物メモ"],
+        "Pinterest": ["楽天市場", "商品選び", "比較", "暮らしのアイデア"],
+        "Instagram": ["楽天市場", "商品比較", "購入品候補", "暮らしのヒント", "保存版"],
+        "楽天ROOM": ["楽天ROOM", "楽天市場", "買ってよかった候補", "商品紹介"],
+    }
+    source = [_hashtag_token(context.theme), *channel_tags[channel]]
+    source.extend(_hashtag_token(point) for point in context.appeal_points)
+    unique: list[str] = []
+    for tag in source:
+        if tag and tag not in unique:
+            unique.append(tag)
+    return " ".join(f"#{tag}" for tag in unique[: context.hashtag_count])
+
+
+def _hook(context: GenerationContext) -> str:
+    index = context.variation_index % 3
+    hooks = {
+        "信頼感のある丁寧語": [
+            f"{context.theme}を選ぶときに確認したい情報を整理しました。",
+            f"{context.theme}の候補を、取得できた商品情報から比較します。",
+            f"{context.theme}選びで迷わないための確認ポイントをまとめます。",
+        ],
+        "親しみやすい": [
+            f"{context.theme}、どれを選ぶか迷っていませんか？",
+            f"気になる{context.theme}を見つけたので、選ぶポイントをまとめました。",
+            f"{context.theme}選びで見落としたくない点を一緒に確認しましょう。",
+        ],
+        "簡潔・端的": [
+            f"{context.theme}の比較ポイントを3つに整理します。",
+            f"結論から、{context.theme}の確認点を紹介します。",
+            f"{context.theme}は価格・評価・送料を分けて確認します。",
+        ],
+        "やわらかい共感型": [
+            f"{context.theme}は候補が多く、決めるまで迷いますよね。",
+            f"自分に合う{context.theme}を、無理なく選びたい方へ。",
+            f"あとで後悔しないよう、{context.theme}の気になる点を整理しました。",
+        ],
+    }
+    return hooks.get(context.tone, hooks["信頼感のある丁寧語"])[index]
+
+
+def _cta(context: GenerationContext, variation_index: int) -> str:
+    ctas = [
+        "価格・在庫・送料の最新情報は、商品ページで確認してください。",
+        "気になる方は、リンク先で最新の条件と詳しい仕様をご確認ください。",
+        "候補に合うか、商品ページの最新情報まで確認して判断しましょう。",
+    ]
+    return ctas[variation_index % len(ctas)]
+
+
+def _custom_line(context: GenerationContext) -> str:
+    return context.custom_message.strip()
 
 
 class TemplateContentGenerator(ContentGenerator):
@@ -86,246 +298,252 @@ class TemplateContentGenerator(ContentGenerator):
         products = context.products
         title_candidates = [
             f"{context.theme}の選び方｜比較前に確認したい3つの基準",
-            f"{context.theme}を比較：価格・レビュー・送料で候補を整理",
-            f"失敗を減らす{context.theme}選び｜楽天市場の候補を事実ベースで確認",
+            f"{context.theme}を比較｜価格・レビュー・送料を整理",
+            f"失敗を減らす{context.theme}選び｜候補を事実ベースで確認",
         ]
+        title = title_candidates[context.variation_index % len(title_candidates)]
         rows = ["| 商品 | 価格 | レビュー | 送料 |", "|---|---:|---:|---|"]
         for product in products:
             postage = "無料" if product.postage_flag == 0 else "要確認"
             rows.append(
-                f"| {product.item_name} | {product.item_price:,}円 | "
+                f"| {_compact_name(product.item_name, 60)} | {product.item_price:,}円 | "
                 f"{product.review_average:.1f}（{product.review_count:,}件） | {postage} |"
             )
+
         sections: list[str] = []
         for product in products:
             exp = _experience(product)
             sections.append(
                 "\n".join(
                     [
-                        f"## {product.item_name}",
-                        product.catchcopy or "商品キャッチコピーは要確認です。",
+                        f"## {_compact_name(product.item_name, 80)}",
+                        product.catchcopy.strip() or "商品キャッチコピーは要確認です。",
                         "",
-                        f"- 確認できた情報: {_fact_summary(product)}",
-                        f"- メリット候補: {(exp.positive_points if exp else '') or '要確認'}",
-                        f"- デメリット・注意点: {(exp.negative_points if exp else '') or '要確認'}",
-                        "- 向いている人: "
+                        f"確認できた情報：{_fact_summary(product)}",
+                        *[f"- {sentence}" for sentence in _appeal_sentences(product, context)],
+                        "- 向いている人："
                         + ((exp.suitable_for if exp else "") or "体験情報を入力してください"),
-                        "- 向いていない人: "
-                        + ((exp.unsuitable_for if exp else "") or "体験情報を入力してください"),
+                        "- 注意点："
+                        + ((exp.negative_points if exp else "") or "価格・送料・在庫は要確認"),
                         "",
                         _experience_section(product),
                         "",
-                        f"{_link(product, context.link_mode)}",
+                        _link(product, context.link_mode),
                     ]
                 )
             )
-        body = _prefix(context) + "\n".join(
+
+        custom = _custom_line(context)
+        hashtags = _hashtags(context, "note")
+        body_parts = [
+            _prefix(context).rstrip(),
+            f"# {title}",
+            "",
+            _hook(context),
+            f"この記事は、{context.target_audience}に向けた比較メモです。",
+        ]
+        if custom:
+            body_parts.extend(["", custom])
+        body_parts.extend(
             [
-                "# タイトル候補",
-                *[f"- {title}" for title in title_candidates],
                 "",
-                "## 想定読者",
-                f"{context.theme}を楽天市場で比較し、根拠を確認して選びたい人。",
+                "## 先に結論",
+                "価格だけで決めず、レビューの件数と平均評価、送料、用途を分けて確認すると候補を整理しやすくなります。",
                 "",
-                "## 読者の悩み",
-                "候補が多く、価格だけでなくレビュー数・送料・利用場面も整理したい。",
-                "",
-                "## 結論",
-                "自動評価点は候補整理の補助です。仕様・価格・在庫を再確認して最終判断します。",
-                "",
-                "## 選び方の基準3つ",
-                "1. 用途と予算が合うか",
+                "## 選ぶときの3つの基準",
+                "1. 使う場面と予算が合うか",
                 "2. レビュー件数と平均評価を分けて見る",
-                "3. 送料・在庫・セール期限を確認する",
+                "3. 送料・在庫・ポイント条件を商品ページで確認する",
                 "",
                 "## 商品比較表",
                 *rows,
                 "",
                 *sections,
                 "",
-                "## 用途別おすすめ",
-                "用途別の結論は、保存した仕様と体験情報を確認して追記してください（要確認）。",
-                "",
                 "## まとめ",
-                "価格や在庫は変動します。リンク先の楽天市場で最新情報を確認してください。",
-                "",
-                "最終確認は投稿者本人が行ってください。",
+                _cta(context, context.variation_index),
             ]
         )
+        if hashtags:
+            body_parts.extend(["", hashtags])
         return GeneratedContent(
             channel="note",
-            title=title_candidates[0],
-            body=body,
-            metadata={"titles": title_candidates},
+            title=title,
+            body="\n".join(part for part in body_parts if part is not None).strip(),
+            metadata={
+                "案の型": ["悩み解決型", "比較整理型", "失敗回避型"][
+                    context.variation_index % 3
+                ],
+                "タイトル候補": title_candidates,
+            },
         )
 
     def _x(self, context: GenerationContext) -> GeneratedContent:
         product = context.products[0]
-        link = _link(product, context.link_mode)
-        patterns = {
-            "悩み型": (
-                "候補が多くて迷うときは、価格だけでなく送料・レビュー件数・平均評価を分けて確認。"
-            ),
-            "比較型": (
-                f"{product.item_name}は{_fact_summary(product)}。比較候補の1つとして整理しました。"
-            ),
-            "結論型": "結論：自動評価点は候補を絞る補助。最後は用途と最新の商品情報で判断。",
-            "記事誘導型": f"{context.theme}の選び方を、価格・レビュー・送料の3軸で整理しました。",
-            "セール・価格更新型": (
-                f"確認時点の価格は{product.item_price:,}円。"
-                "価格・在庫・終了日時はリンク先で再確認を。"
-            ),
-        }
-        posts: list[dict[str, Any]] = []
-        for pattern, base in patterns.items():
-            for number, suffix in enumerate(
-                [
-                    "迷ったときの確認メモです。",
-                    "失敗回避のチェックリストに。",
-                    "用途に合うかを先に確認。",
-                ],
-                start=1,
-            ):
-                text = f"{base}\n{suffix}\n{link}\n{context.disclosure}".strip()
-                posts.append({"種類": pattern, "案": number, "本文": text, "文字数": len(text)})
-        body = _prefix(context) + "\n\n".join(
-            f"### {post['種類']} 案{post['案']}（{post['文字数']}文字）\n{post['本文']}"
-            for post in posts
-        )
+        name = _compact_name(product.item_name, 32)
+        fact_options = _appeal_sentences(product, context)
+        facts = " ".join(fact_options[:2])
+        patterns = [
+            f"{_hook(context)} {name}は、{facts}",
+            f"{name}を比較候補に追加。{facts} 用途に合うかを確認中です。",
+            f"{context.theme}選びのメモ。{facts} 最後は最新条件で判断します。",
+        ]
+        main = patterns[context.variation_index % len(patterns)]
+        custom = _custom_line(context)
+        if custom:
+            main = f"{main} {custom}"
+        suffix = [
+            _cta(context, context.variation_index),
+            _link(product, context.link_mode),
+            _hashtags(context, "X"),
+        ]
+        prefix = _prefix(context).strip()
+        body = "\n".join(part for part in [prefix, main, *suffix] if part).strip()
         return GeneratedContent(
-            channel="X", title=f"{context.theme} X投稿案", body=body, metadata={"posts": posts}
+            channel="X",
+            title=f"{context.theme}｜X投稿案{context.variation_index + 1}",
+            body=body,
+            metadata={
+                "案の型": ["悩み提示型", "商品比較型", "確認メモ型"][
+                    context.variation_index % 3
+                ]
+            },
         )
 
     def _pinterest(self, context: GenerationContext) -> GeneratedContent:
         product = context.products[0]
-        intents = ["初心者向け", "コスパ重視", "失敗回避", "比較", "用途別"]
-        pins = []
-        for intent in intents:
-            pins.append(
-                {
-                    "検索意図": intent,
-                    "ピンタイトル": f"{intent}｜{context.theme}の選び方チェック",
-                    "説明文": (
-                        f"{_fact_summary(product)}を確認し、{intent}の観点で候補を整理。"
-                        "最新情報は楽天市場で要確認。"
-                    ),
-                    "画像に載せる文字": f"{context.theme}\n{intent}の3チェック",
-                    "構図案": "オリジナル写真を中央、確認ポイントを左右に3つ配置",
-                    "保存先ボード": f"{context.theme}選び",
-                    "note誘導文": "比較基準の詳細はnoteで確認",
-                    "楽天誘導文": f"最新の価格・在庫を{_link(product, context.link_mode)}",
-                    "撮影案": "自然光でオリジナル写真を撮影。商品ロゴや公式画像は加工しない。",
-                }
-            )
-        body = _prefix(context) + "\n\n".join(
-            "\n".join(
-                [
-                    f"## {pin['検索意図']}",
-                    *[f"- {key}: {value}" for key, value in pin.items() if key != "検索意図"],
-                ]
-            )
-            for pin in pins
-        )
+        intents = ["初心者向け", "比較・検討", "失敗回避"]
+        intent = intents[context.variation_index % len(intents)]
+        title = f"{intent}｜{context.theme}の選び方チェック"
+        appeal_text = " ".join(_appeal_sentences(product, context)[:3])
+        custom = _custom_line(context)
+        paragraphs = [
+            _prefix(context).strip(),
+            _hook(context),
+            appeal_text,
+            custom,
+            _cta(context, context.variation_index),
+            _link(product, context.link_mode),
+            _hashtags(context, "Pinterest"),
+        ]
+        body = "\n\n".join(part for part in paragraphs if part).strip()
         return GeneratedContent(
             channel="Pinterest",
-            title=f"{context.theme} Pinterest案",
+            title=title,
             body=body,
-            metadata={"pins": pins},
+            metadata={
+                "案の型": intent,
+                "画像に載せる文字": f"{context.theme}\n{intent}の3チェック",
+                "構図案": "オリジナル写真を中央に置き、確認ポイントを3つ配置",
+                "保存先ボード案": f"{context.theme}選び",
+                "撮影メモ": "自然光で撮影し、実際の色味を誤認させる加工は避ける",
+            },
         )
 
     def _instagram(self, context: GenerationContext) -> GeneratedContent:
         product = context.products[0]
-        exp = _experience(product)
-        fact_guard = (
-            exp.positive_points
-            if exp and exp.has_used is True and exp.positive_points
-            else "使用感は未確認。商品情報を確認した範囲で整理"
-        )
-        slides = [
-            ("1", f"{context.theme}、何で選ぶ？"),
-            ("2", "まず用途を決める"),
-            ("3", f"価格: {product.item_price:,}円（確認日時を記載）"),
-            ("4", f"レビュー: {product.review_average:.1f} / {product.review_count:,}件"),
-            ("5", "送料・在庫をチェック"),
-            ("6", fact_guard),
-            ("7", "比較表で候補を整理"),
-            ("8", "最新情報は楽天市場で確認"),
+        fact_guard = _experience_section(product)
+        appeal_text = "\n".join(f"・{line}" for line in _appeal_sentences(product, context))
+        custom = _custom_line(context)
+        body_parts = [
+            _prefix(context).strip(),
+            _hook(context),
+            "",
+            f"{context.target_audience}に向けて、確認ポイントをまとめました。",
+            "",
+            appeal_text,
+            "",
+            fact_guard,
         ]
-        slide_text = "\n".join(
-            f"### {no}枚目\n{heading}\n本文: {heading}を事実ベースで確認。"
-            for no, heading in slides
-        )
-        body = _prefix(context) + "\n".join(
+        if custom:
+            body_parts.extend(["", custom])
+        body_parts.extend(
             [
-                "# カルーセル8枚構成",
-                slide_text,
                 "",
-                "## キャプション",
-                f"{context.theme}を選ぶ前に、価格・送料・レビューを整理しました。{fact_guard}。",
-                f"{_link(product, context.link_mode)}",
+                "保存して、ほかの候補と比べるときに見返してください。",
+                _cta(context, context.variation_index),
+                _link(product, context.link_mode),
                 "",
-                "## リール台本",
-                "冒頭: 選び方で迷っていませんか？\n"
-                "展開: 3つの確認軸を順に表示\n"
-                "締め: 保存して商品ページで再確認",
-                "",
-                "## ストーリーズ3枚構成",
-                "1. 悩みの提示\n2. 比較の3軸\n3. プロフィールまたは楽天ROOMへの導線",
-                "",
-                "## プロフィール誘導文",
-                "比較メモの詳細はプロフィールのリンクへ。",
-                "",
-                "## 楽天ROOM誘導文",
-                "保存した候補は楽天ROOMのコレクションで確認できます。",
-                "",
-                "## ハッシュタグ候補",
-                f"#{context.theme.replace(' ', '')} #楽天購入候補 #商品比較 #失敗回避",
-                "",
-                "## オリジナル写真の撮影チェックリスト",
-                "- 自分で撮影した写真か\n"
-                "- ロゴや公式商品画像を加工していないか\n"
-                "- 実際の色味を誤認させていないか",
+                _hashtags(context, "Instagram"),
             ]
         )
+        slide_headings = [
+            f"{context.theme}、何で選ぶ？",
+            "使う場面を決める",
+            f"価格は{product.item_price:,}円（確認日を記載）",
+            f"レビューは平均{product.review_average:.1f}・{product.review_count:,}件",
+            "送料・在庫を確認",
+            "気になる点も確認",
+            "候補を比較",
+            "最新情報は商品ページへ",
+        ]
         return GeneratedContent(
-            channel="Instagram", title=f"{context.theme} Instagram案", body=body
+            channel="Instagram",
+            title=f"{context.theme}｜Instagram投稿案{context.variation_index + 1}",
+            body="\n".join(part for part in body_parts if part is not None).strip(),
+            metadata={
+                "案の型": ["共感型", "チェックリスト型", "結論先出し型"][
+                    context.variation_index % 3
+                ],
+                "カルーセル構成": [
+                    f"{index}枚目：{heading}" for index, heading in enumerate(slide_headings, 1)
+                ],
+                "リール冒頭案": [
+                    "選び方で迷っていませんか？",
+                    "買う前に、この3点を確認。",
+                    "価格だけで決める前に保存してください。",
+                ][context.variation_index % 3],
+                "撮影チェック": [
+                    "自分で撮影した写真か",
+                    "公式画像やロゴを無断加工していないか",
+                    "実際の色味を誤認させていないか",
+                ],
+            },
         )
 
     def _room(self, context: GenerationContext) -> GeneratedContent:
         product = context.products[0]
         exp = _experience(product)
         used = exp is not None and exp.has_used is True
-        positive_points = exp.positive_points if used and exp is not None else ""
-        short = f"{_fact_summary(product)}。" + (
-            positive_points or "購入候補として仕様を確認しました。"
-        )
-        body = _prefix(context) + "\n".join(
+        openings = [
+            f"{context.theme}の候補としてチェックした商品です。",
+            f"価格・レビュー・送料から、{context.theme}の候補を整理しました。",
+            f"{context.theme}選びで気になったポイントをまとめます。",
+        ]
+        body_parts = [
+            _prefix(context).strip(),
+            openings[context.variation_index % 3],
+            _compact_name(product.item_name, 70),
+            "",
+            *[f"・{line}" for line in _appeal_sentences(product, context)],
+        ]
+        if used and exp and exp.positive_points:
+            body_parts.extend(["", f"確認済みの使用感：{exp.positive_points}"])
+        else:
+            body_parts.extend(["", "使用感は未確認のため、商品情報の範囲で紹介しています。"])
+        custom = _custom_line(context)
+        if custom:
+            body_parts.extend(["", custom])
+        body_parts.extend(
             [
-                "# 短い紹介文",
-                short,
                 "",
-                "# 詳細な紹介文",
-                product.catchcopy or "商品情報はリンク先で要確認です。",
-                _experience_section(product),
-                f"{_link(product, context.link_mode)}",
+                _cta(context, context.variation_index),
+                _link(product, context.link_mode),
                 "",
-                "# 向いている人",
-                (exp.suitable_for if exp else "体験情報を入力してください") or "要確認",
-                "",
-                "# 注意点",
-                (exp.negative_points if exp else "価格・送料・在庫は楽天市場で再確認") or "要確認",
-                "",
-                "# ハッシュタグ",
-                f"#{context.theme.replace(' ', '')} #楽天ROOM #購入候補",
-                "",
-                "# コレクション名候補",
-                f"{context.theme}の比較候補",
-                "",
-                "# コレクション説明文",
-                "取得した商品情報と入力済み体験情報をもとに、比較候補を整理しています。",
+                _hashtags(context, "楽天ROOM"),
             ]
         )
-        return GeneratedContent(channel="楽天ROOM", title=f"{product.item_name} 紹介案", body=body)
+        return GeneratedContent(
+            channel="楽天ROOM",
+            title=f"{_compact_name(product.item_name, 50)}｜紹介案{context.variation_index + 1}",
+            body="\n".join(part for part in body_parts if part is not None).strip(),
+            metadata={
+                "案の型": ["候補紹介型", "比較整理型", "ポイント紹介型"][
+                    context.variation_index % 3
+                ],
+                "コレクション名案": f"{context.theme}の比較候補",
+            },
+        )
 
 
 class LLMContentGenerator(ContentGenerator):
