@@ -67,6 +67,12 @@ def test_naive_expired_sale_from_sqlite_is_blocked_without_error() -> None:
     assert any(issue.code == "expired_sale" for issue in report.issues)
 
 
+def test_known_price_next_to_japanese_text_is_not_reported_as_unknown() -> None:
+    product = make_product(item_price=1_200)
+    report = run_check("PR\n確認時点の価格は1,200円です。", product)
+    assert not any(issue.code == "unverified_numbers" for issue in report.issues)
+
+
 def test_out_of_stock_is_blocked() -> None:
     product = make_product(availability=0)
     report = run_check("PR\n商品情報を確認した範囲では候補です。", product)
