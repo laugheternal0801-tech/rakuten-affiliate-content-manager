@@ -91,7 +91,7 @@ def _unknown_numeric_claims(text: str, products: Iterable[Product]) -> list[str]
                 f"{product.point_rate:g}",
             }
         )
-    candidates = set(re.findall(r"(?<![\w])\d[\d,]*(?:\.\d+)?(?=円|件|％|%|倍)", text))
+    candidates = set(re.findall(r"(?<![\d,])\d[\d,]*(?:\.\d+)?(?=円|件|％|%|倍)", text))
     return sorted(value for value in candidates if value not in allowed)
 
 
