@@ -61,6 +61,12 @@ def test_expired_sale_is_blocked() -> None:
     assert any(issue.code == "expired_sale" for issue in report.issues)
 
 
+def test_naive_expired_sale_from_sqlite_is_blocked_without_error() -> None:
+    product = make_product(sale_end=datetime.now() - timedelta(hours=1))
+    report = run_check("PR\n商品情報を確認した範囲では候補です。", product)
+    assert any(issue.code == "expired_sale" for issue in report.issues)
+
+
 def test_out_of_stock_is_blocked() -> None:
     product = make_product(availability=0)
     report = run_check("PR\n商品情報を確認した範囲では候補です。", product)
