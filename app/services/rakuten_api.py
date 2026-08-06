@@ -113,7 +113,6 @@ class RakutenAPIClient:
         return result
 
     def _request(self, params: dict[str, Any]) -> dict[str, Any]:
-        headers = {"accessKey": self.settings.rakuten_access_key}
         safe_log = {
             key: value
             for key, value in params.items()
@@ -122,9 +121,7 @@ class RakutenAPIClient:
         for attempt in range(self._max_retries + 1):
             logger.info("楽天商品検索APIを呼び出します: %s", safe_log)
             try:
-                response = self._client.get(
-                    str(self.settings.rakuten_api_endpoint), params=params, headers=headers
-                )
+                response = self._client.get(str(self.settings.rakuten_api_endpoint), params=params)
             except httpx.TimeoutException as exc:
                 if attempt >= self._max_retries:
                     raise RakutenAPIError(
