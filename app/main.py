@@ -14,9 +14,15 @@ from app.database import init_db, session_scope  # noqa: E402
 from app.services.sample_data import seed_sample_data  # noqa: E402
 
 st.set_page_config(
-    page_title="Rakuten Affiliate Content Manager",
+    page_title="楽天アフィ｜投稿文作成・運用管理",
     page_icon=":material/edit_note:",
     layout="wide",
+    initial_sidebar_state="expanded",
+    menu_items={
+        "Get Help": None,
+        "Report a bug": None,
+        "About": "楽天アフィリエイト投稿の下書き・確認・分析を支援するアプリです。",
+    },
 )
 
 init_db()
@@ -25,13 +31,14 @@ with session_scope() as session:
 
 st.session_state.setdefault("search_results", [])
 st.session_state.setdefault("generated_content", None)
+st.session_state.setdefault("generated_variations", [])
 st.session_state.setdefault("csv_frame", None)
 st.session_state.setdefault("csv_mapping", {})
 
 settings = get_settings()
 page_dir = Path(__file__).resolve().parent / "app_pages"
 with st.sidebar:
-    st.markdown("**Rakuten Affiliate Content Manager**")
+    st.markdown("**楽天アフィ**")
     if settings.rakuten_configured:
         st.badge("楽天APIモード", icon=":material/cloud_done:", color="green")
     else:
@@ -49,7 +56,7 @@ pages = {
         st.Page(page_dir / "product_search.py", title="商品検索", icon=":material/search:"),
         st.Page(page_dir / "products.py", title="商品・体験情報", icon=":material/inventory_2:"),
         st.Page(
-            page_dir / "content_creation.py", title="コンテンツ作成", icon=":material/edit_note:"
+            page_dir / "content_creation.py", title="投稿文作成", icon=":material/edit_note:"
         ),
         st.Page(page_dir / "content_management.py", title="投稿管理", icon=":material/fact_check:"),
     ],
