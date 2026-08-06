@@ -73,6 +73,12 @@ if submitted:
             if settings.rakuten_configured:
                 result = get_rakuten_client().search(criteria)
                 products = result["products"]
+                if result.get("affiliate_id_rejected"):
+                    st.warning(
+                        "Affiliate IDが楽天APIに拒否されたため、商品情報のみ取得しました。"
+                        "アフィリエイトURLを生成するにはAffiliate IDを確認してください。",
+                        icon=":material/link_off:",
+                    )
             else:
                 products = [
                     {
