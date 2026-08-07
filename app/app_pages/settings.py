@@ -89,16 +89,40 @@ if save_pr:
         set_setting(session, "affiliate_disclosure", disclosure.strip())
     st.success("広告表記設定を保存しました。")
 
-st.subheader("文章生成")
+st.subheader("Claude Sonnet 5")
 with st.container(border=True):
     if settings.llm_configured:
-        st.badge("LLM拡張設定あり", icon=":material/extension:", color="green")
+        st.badge("Claude API 接続設定あり", icon=":material/cloud_done:", color="green")
+        st.write(f"LLM拡張では **{settings.anthropic_model}** を使用します。")
+        st.caption("APIキーそのものは画面やログへ表示しません。")
     else:
-        st.badge("テンプレート生成", icon=":material/description:", color="blue")
-    st.write("外部LLMが未設定でも全媒体のテンプレート下書きを生成できます。")
-    st.caption(
-        "初期実装は特定の有料LLMに依存しません。ContentGeneratorインターフェースから拡張できます。"
+        st.badge("APIキー未設定", icon=":material/key_off:", color="orange")
+        st.write("標準テンプレートはそのまま使えます。LLM拡張にはAnthropicのAPIキーが必要です。")
+
+    st.link_button(
+        "Anthropic ConsoleでAPIキーを作成",
+        "https://console.anthropic.com/settings/keys",
+        icon=":material/open_in_new:",
     )
+    st.markdown("**公開アプリ（Streamlit Community Cloud）**")
+    st.write("アプリの管理画面で「Settings」→「Secrets」を開き、次を追加して保存します。")
+    st.code(
+        'ANTHROPIC_API_KEY = "ここにAnthropicのAPIキー"\n'
+        'ANTHROPIC_MODEL = "claude-sonnet-5"',
+        language="toml",
+    )
+    st.markdown("**Windowsのローカルアプリ**")
+    st.write("プロジェクトの `.env` に次を追加し、アプリを再起動します。")
+    st.code(
+        "ANTHROPIC_API_KEY=ここにAnthropicのAPIキー\n"
+        "ANTHROPIC_MODEL=claude-sonnet-5",
+        language="dotenv",
+    )
+    st.warning(
+        "APIキーはこの画面やチャットへ貼り付けず、Secretsまたは.envへ直接入力してください。",
+        icon=":material/security:",
+    )
+    st.caption("Claude APIの利用料はAnthropicアカウント側で発生します。")
 
 st.subheader("安全設計")
 st.markdown(
