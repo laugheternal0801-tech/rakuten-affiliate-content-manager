@@ -105,9 +105,16 @@ streamlit run app/main.py
 
 自動評価点は候補整理の補助です。評価点だけで商品を自動決定しません。
 
-## テンプレート生成とLLM拡張
+## テンプレート生成とClaude Sonnet 5
 
-初期状態では外部AIを使わない `TemplateContentGenerator` を使用します。`ContentGenerator` インターフェースと `LLMContentGenerator` 拡張点を分離してあるため、後から任意プロバイダーを実装できます。LLM設定がない場合は自動的にテンプレート生成へ戻ります。
+初期状態では外部AIを使わない `TemplateContentGenerator` を使用します。Claude Sonnet 5を使う場合は、Anthropic ConsoleでAPIキーを発行し、ローカル版は `.env`、Streamlit Community Cloud版はアプリの「Settings」→「Secrets」に次を追加します。
+
+```dotenv
+ANTHROPIC_API_KEY=ここにAnthropicのAPIキー
+ANTHROPIC_MODEL=claude-sonnet-5
+```
+
+APIキーはGitへコミットせず、チャットにも貼り付けないでください。LLM拡張はAnthropic Messages APIの構造化出力を使い、商品情報と確認済み体験だけを参照して日本語の下書きを作成します。APIキーが未設定の場合も、標準テンプレート生成は利用できます。Claude APIの利用料はAnthropicアカウント側で発生します。
 
 ## 楽天成果CSVの読み込み
 
