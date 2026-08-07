@@ -15,6 +15,7 @@ from app.services.content_generation import (
     CHANNEL_PROFILES,
     CHANNELS,
     TONE_OPTIONS,
+    ContentGenerationError,
     GenerationContext,
     analyze_copy,
     get_content_generator,
@@ -40,6 +41,15 @@ if not products:
 
 settings = get_settings()
 st.session_state.setdefault("generated_variations", [])
+
+if settings.llm_configured:
+    st.badge(
+        f"Claude Sonnet 5 利用可能｜{settings.anthropic_model}",
+        icon=":material/auto_awesome:",
+        color="green",
+    )
+else:
+    st.caption("LLM拡張を使うには、設定画面でClaude APIキーの設定方法を確認してください。")
 
 channel = st.segmented_control(
     "投稿先",
@@ -120,7 +130,7 @@ with st.container(border=True):
         mode = detail_columns[0].selectbox(
             "生成方式",
             ["標準テンプレート", "LLM拡張"],
-            help="LLM設定がない場合は自動的に標準テンプレートへ切り替わります。",
+            help="LLM拡張はClaude Sonnet 5を使います。API利用料はAnthropic側で発生します。",
         )
         link_mode_label = detail_columns[1].selectbox(
             "リンクの入れ方",
@@ -142,43 +152,56 @@ if generated:
         if any(product.is_sample for product in selected_products):
             st.warning("架空のサンプル商品を含む投稿案は、操作確認専用で公開できません。")
         effective_pr = pr_required or pr_policy == "always"
-        generator = get_content_generator(
-            "llm" if mode == "LLM拡張" else "template",
-            provider=settings.llm_provider,
-            api_key=settings.llm_api_key,
-        )
-        outputs = generator.generate_variations(
-            selected_channel,
-            GenerationContext(
-                products=selected_products,
-                theme=theme.strip(),
-                link_mode="direct" if link_mode_label == "実際のURL" else "placeholder",
-                disclosure=str(disclosure),
-                pr_required=effective_pr,
-                target_audience=target_audience.strip() or "商品選びで迷っている人",
-                tone=str(tone or "信頼感のある丁寧語"),
-                appeal_points=tuple(str(point) for point in (appeal_points or [])),
-                custom_message=custom_message.strip(),
-                target_length=int(target_length),
-                hashtag_count=int(hashtag_count),
-            ),
-            int(variation_count or 1),
-        )
-        generation_id = uuid4().hex[:10]
-        st.session_state.generated_variations = [
-            {
-                **output.model_dump(),
-                "product_ids": list(selected_ids),
-                "theme": theme.strip(),
-                "pr_required": effective_pr,
-                "target_length": int(target_length),
-                "requested_hashtag_count": int(hashtag_count),
-                "generation_id": generation_id,
-            }
-            for output in outputs
-        ]
-        if mode == "LLM拡張" and not settings.llm_configured:
-            st.info("LLM設定がないため、標準テンプレートで安全に作成しました。")
+        try:
+            generator = get_content_generator(
+                "llm" if mode == "LLM拡張" else "template",
+                provider=settings.llm_provider,
+                api_key=settings.claude_api_key,
+                model=settings.anthropic_model,
+                timeout_seconds=settings.anthropic_api_timeout_seconds,
+            )
+            spinner_message = (
+                "Claudeが投稿案を作成しています…"
+                if mode == "LLM拡張"
+                else "投稿案を作成しています…"
+            )
+            with st.spinner(spinner_message):
+                outputs = generator.generate_variations(
+                    selected_channel,
+                    GenerationContext(
+                        products=selected_products,
+                        theme=theme.strip(),
+                        link_mode=(
+                            "direct" if link_mode_label == "実際のURL" else "placeholder"
+                        ),
+                        disclosure=str(disclosure),
+                        pr_required=effective_pr,
+                        target_audience=target_audience.strip() or "商品選びで迷っている人",
+                        tone=str(tone or "信頼感のある丁寧語"),
+                        appeal_points=tuple(str(point) for point in (appeal_points or [])),
+                        custom_message=custom_message.strip(),
+                        target_length=int(target_length),
+                        hashtag_count=int(hashtag_count),
+                    ),
+                    int(variation_count or 1),
+                )
+        except ContentGenerationError as exc:
+            st.error(str(exc), icon=":material/error:")
+            st.info("設定画面でAPIキーを確認するか、標準テンプレートを選択してください。")
+        else:
+            generation_id = uuid4().hex[:10]
+            st.session_state.generated_variations = [
+                {
+                    **output.model_dump(),
+                    "product_ids": list(selected_ids),
+                    "theme": theme.strip(),
+                    "pr_required": effective_pr,
+                    "target_length": int(target_length),
+                    "requested_hashtag_count": int(hashtag_count),
+                    "generation_id": generation_id,
+                }
+                for output in outputs
+            ]
 
 drafts = st.session_state.get("generated_variations", [])
 if drafts:
