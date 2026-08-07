@@ -26,7 +26,10 @@ class Settings(BaseSettings):
     )
     rakuten_api_timeout_seconds: float = Field(default=10.0, ge=1, le=60)
     rakuten_api_cache_ttl_seconds: int = Field(default=900, ge=60, le=86400)
-    llm_provider: str = ""
+    anthropic_api_key: str = ""
+    anthropic_model: str = "claude-sonnet-5"
+    anthropic_api_timeout_seconds: float = Field(default=60.0, ge=5, le=180)
+    llm_provider: str = "anthropic"
     llm_api_key: str = ""
     database_url: str = f"sqlite:///{(PROJECT_ROOT / 'data' / 'app.db').as_posix()}"
 
@@ -36,7 +39,16 @@ class Settings(BaseSettings):
 
     @property
     def llm_configured(self) -> bool:
-        return bool(self.llm_provider and self.llm_api_key)
+        return bool(self.claude_api_key)
+
+    @property
+    def claude_api_key(self) -> str:
+        """Prefer the dedicated Anthropic key while retaining the old LLM setting."""
+        if self.anthropic_api_key:
+            return self.anthropic_api_key
+        if self.llm_provider.lower() in {"anthropic", "claude"}:
+            return self.llm_api_key
+        return ""
 
 
 @lru_cache(maxsize=1)
