@@ -1,10 +1,19 @@
 from __future__ import annotations
 
+import json
+
+import httpx
+import pytest
+
 from app.models import Product
 from app.services.content_generation import (
+    ANTHROPIC_MESSAGES_URL,
+    ContentGenerationError,
     GenerationContext,
+    LLMContentGenerator,
     TemplateContentGenerator,
     analyze_copy,
+    get_content_generator,
 )
 
 
@@ -85,3 +94,107 @@ def test_copy_analysis_counts_japanese_and_target_difference() -> None:
     assert analysis.difference == -20
     assert analysis.hashtag_count == 1
     assert analysis.japanese_status == "日本語中心"
+
+
+def test_claude_generator_sends_safe_structured_request_and_parses_response() -> None:
+    captured: dict[str, object] = {}
+    response_content = json.dumps(
+        {
+            "title": "朝のコーヒー選び",
+            "body": "商品情報を確認しながら選べます。",
+            "creative_angle": "時短重視",
+            "key_points": ["価格", "レビュー"],
+            "review_notes": ["価格を公開前に確認"],
+        },
+        ensure_ascii=False,
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["url"] = str(request.url)
+        captured["headers"] = dict(request.headers)
+        captured["payload"] = json.loads(request.content)
+        return httpx.Response(
+            200,
+            json={
+                "id": "msg_test",
+                "type": "message",
+                "role": "assistant",
+                "model": "claude-sonnet-5",
+                "content": [{"type": "text", "text": response_content}],
+                "stop_reason": "end_turn",
+            },
+        )
+
+    api_key = "-".join(["test", "api", "key"])
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    generator = LLMContentGenerator(
+        TemplateContentGenerator(),
+        provider="anthropic",
+        api_key=api_key,
+        model="claude-sonnet-5",
+        client=client,
+    )
+
+    output = generator.generate("note", make_context())
+
+    assert captured["url"] == ANTHROPIC_MESSAGES_URL
+    headers = captured["headers"]
+    assert isinstance(headers, dict)
+    assert headers["x-api-key"] == api_key
+    assert headers["anthropic-version"] == "2023-06-01"
+    payload = captured["payload"]
+    assert isinstance(payload, dict)
+    assert payload["model"] == "claude-sonnet-5"
+    assert payload["thinking"] == {"type": "disabled"}
+    assert payload["output_config"]["format"]["type"] == "json_schema"
+    assert "temperature" not in payload
+    assert "未信頼の参照データ" in payload["system"]
+    assert output.title == "朝のコーヒー選び"
+    assert output.body.startswith("【PR】")
+    assert make_product().affiliate_url in output.body
+    assert output.metadata["モデル"] == "claude-sonnet-5"
+
+
+def test_claude_generator_returns_safe_authentication_error() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(401, json={"error": {"message": "invalid x-api-key"}})
+
+    api_key = "-".join(["private", "test", "value"])
+    generator = get_content_generator(
+        "llm",
+        provider="anthropic",
+        api_key=api_key,
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    with pytest.raises(ContentGenerationError) as exc_info:
+        generator.generate("X", make_context())
+
+    assert "APIキーが無効" in str(exc_info.value)
+    assert api_key not in str(exc_info.value)
+
+
+def test_claude_generator_rejects_malformed_output() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "content": [{"type": "text", "text": "not-json"}],
+                "stop_reason": "end_turn",
+            },
+        )
+
+    generator = get_content_generator(
+        "llm",
+        provider="anthropic",
+        api_key="-".join(["test", "key"]),
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    with pytest.raises(ContentGenerationError, match="応答を投稿案として読み取れません"):
+        generator.generate("Instagram", make_context())
+
+
+def test_llm_mode_requires_api_key() -> None:
+    with pytest.raises(ContentGenerationError, match="APIキーが未設定"):
+        get_content_generator("llm", provider="anthropic", api_key="")
