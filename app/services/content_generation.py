@@ -641,7 +641,7 @@ class LLMContentGenerator(ContentGenerator):
         provider: str,
         api_key: str,
         model: str = DEFAULT_ANTHROPIC_MODEL,
-        timeout_seconds: float = 60.0,
+        timeout_seconds: float = 120.0,
         client: httpx.Client | None = None,
     ) -> None:
         if provider.lower() not in {"anthropic", "claude"}:
@@ -654,6 +654,7 @@ class LLMContentGenerator(ContentGenerator):
         self.provider = "anthropic"
         self.api_key = api_key.strip()
         self.model = model.strip() or DEFAULT_ANTHROPIC_MODEL
+        self.timeout_seconds = timeout_seconds
         self.client = client or httpx.Client(timeout=timeout_seconds)
 
     def generate(self, channel: str, context: GenerationContext) -> GeneratedContent:
@@ -707,7 +708,8 @@ class LLMContentGenerator(ContentGenerator):
             )
         except httpx.TimeoutException as exc:
             raise ContentGenerationError(
-                "Claude APIが時間内に応答しませんでした。少し待ってから再実行してください。"
+                f"Claude APIが{self.timeout_seconds:g}秒以内に応答しませんでした。"
+                "少し待ってから再実行してください。"
             ) from exc
         except httpx.RequestError as exc:
             raise ContentGenerationError(
@@ -906,7 +908,7 @@ def get_content_generator(
     provider: str = "anthropic",
     api_key: str = "",
     model: str = DEFAULT_ANTHROPIC_MODEL,
-    timeout_seconds: float = 60.0,
+    timeout_seconds: float = 120.0,
     client: httpx.Client | None = None,
 ) -> ContentGenerator:
     template = TemplateContentGenerator()
