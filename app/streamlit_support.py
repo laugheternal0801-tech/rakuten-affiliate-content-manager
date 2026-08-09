@@ -10,6 +10,8 @@ from app.config import get_settings
 from app.models import Product
 from app.services.rakuten_api import RakutenAPIClient
 
+NOTE_NEW_POST_URL = "https://note.com/new"
+
 
 @st.cache_resource
 def get_rakuten_client() -> RakutenAPIClient:
@@ -74,3 +76,35 @@ def show_compliance_report(report: dict[str, Any]) -> None:
         with st.expander(f"{label}: {issue.get('message', '')}", icon=":material/report:"):
             st.write(issue.get("suggestion", ""))
     st.caption(report.get("disclaimer", "最終確認は投稿者本人が行ってください。"))
+
+
+def show_note_posting_assistant(
+    *,
+    title: str,
+    body: str,
+    enabled: bool,
+    key: str,
+) -> None:
+    """Show a human-reviewed handoff from the app to note's official editor."""
+    with st.container(border=True):
+        st.subheader("noteへ投稿", anchor=False)
+        st.caption(
+            "noteは公式の投稿APIを公開していないため、タイトルと本文をコピーして"
+            "公式の投稿画面へ移します。note側で内容を確認してから公開してください。"
+        )
+        st.markdown("**1. タイトルをコピー**")
+        st.code(title.strip(), language=None, wrap_lines=True)
+        st.markdown("**2. 本文をコピー**")
+        st.code(body.strip(), language=None, wrap_lines=True, height=320)
+        st.caption("各枠の右上にあるコピーアイコンを押してください。")
+        st.link_button(
+            "3. note投稿画面を開く",
+            NOTE_NEW_POST_URL,
+            key=key,
+            icon=":material/open_in_new:",
+            type="primary",
+            disabled=not enabled,
+            width="stretch",
+        )
+        if not enabled:
+            st.caption("公開前チェックを確認し、確認欄にチェックすると開けます。")
