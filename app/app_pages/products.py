@@ -45,7 +45,7 @@ with st.container(border=True):
     st.subheader("比較記事の準備")
     st.caption(
         "ジャンル、比較する5〜7商品、読者の悩み、狙うキーワードを自分で設定します。"
-        "保存した内容は「投稿文作成」の比較記事モードに引き継がれます。"
+        "保存した内容は「投稿文作成」でnoteを選んだときに引き継がれます。"
     )
     if len(eligible_products) < 5:
         st.info(
@@ -111,7 +111,7 @@ with st.container(border=True):
                         "main_keyword": main_keyword.strip(),
                     },
                 )
-            st.success("比較記事の設定を保存しました。投稿文作成から使えます。")
+            st.success("note比較記事の設定を保存しました。投稿文作成から使えます。")
             st.rerun()
 
 if brief_product_ids:
