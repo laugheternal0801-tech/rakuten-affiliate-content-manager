@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     rakuten_api_cache_ttl_seconds: int = Field(default=900, ge=60, le=86400)
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-sonnet-5"
-    anthropic_api_timeout_seconds: float = Field(default=60.0, ge=5, le=180)
+    anthropic_api_timeout_seconds: float = Field(default=120.0, ge=5, le=180)
     llm_provider: str = "anthropic"
     llm_api_key: str = ""
     database_url: str = f"sqlite:///{(PROJECT_ROOT / 'data' / 'app.db').as_posix()}"
