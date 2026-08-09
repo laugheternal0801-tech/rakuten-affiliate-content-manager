@@ -6,15 +6,142 @@ import pandas as pd
 import streamlit as st
 
 from app.database import session_scope
-from app.repositories import delete_product, get_product, list_products, upsert_experience
+from app.repositories import (
+    delete_product,
+    get_product,
+    get_setting,
+    list_products,
+    set_setting,
+    upsert_experience,
+)
 from app.schemas import ExperienceInput
 
 with session_scope() as session:
     products = list_products(session)
+    comparison_brief = get_setting(
+        session,
+        "comparison_article_brief",
+        {
+            "genre": "",
+            "product_ids": [],
+            "target_audience": "",
+            "main_keyword": "",
+        },
+    )
 
 if not products:
     st.info("保存商品がありません。商品検索画面で候補を保存してください。")
     st.stop()
+
+eligible_products = [product for product in products if not product.is_sample]
+eligible_ids = {product.id for product in eligible_products}
+brief_product_ids = [
+    int(product_id)
+    for product_id in comparison_brief.get("product_ids", [])
+    if int(product_id) in eligible_ids
+]
+
+with st.container(border=True):
+    st.subheader("比較記事の準備")
+    st.caption(
+        "ジャンル、比較する5〜7商品、読者の悩み、狙うキーワードを自分で設定します。"
+        "保存した内容は「投稿文作成」の比較記事モードに引き継がれます。"
+    )
+    if len(eligible_products) < 5:
+        st.info(
+            f"比較記事には実在の商品が5件以上必要です。現在は{len(eligible_products)}件です。"
+            "先に商品検索から候補を保存してください。",
+            icon=":material/info:",
+        )
+    with st.form("comparison_article_brief_form"):
+        article_genre = st.text_input(
+            "ジャンル",
+            value=str(comparison_brief.get("genre", "")),
+            placeholder="例：家庭用コーヒーメーカー",
+        )
+        comparison_ids = st.multiselect(
+            "比較する商品（5〜7点）",
+            [product.id for product in eligible_products],
+            default=brief_product_ids,
+            max_selections=7,
+            format_func=lambda product_id: next(
+                f"{product.item_name}｜{product.item_price:,}円"
+                for product in eligible_products
+                if product.id == product_id
+            ),
+            help="楽天の商品検索で保存した候補から、自分で5〜7点を選びます。",
+        )
+        target_audience = st.text_area(
+            "想定読者（誰が何に困っているか）",
+            value=str(comparison_brief.get("target_audience", "")),
+            placeholder="例：忙しい朝でも手軽に使える1台を選べずに困っている人",
+            height=90,
+        )
+        main_keyword = st.text_input(
+            "狙うキーワード",
+            value=str(comparison_brief.get("main_keyword", "")),
+            placeholder="例：コーヒーメーカー おすすめ 比較",
+        )
+        save_brief = st.form_submit_button(
+            "比較記事の設定を保存",
+            icon=":material/save:",
+            type="primary",
+        )
+    if save_brief:
+        missing = []
+        if not article_genre.strip():
+            missing.append("ジャンル")
+        if not 5 <= len(comparison_ids) <= 7:
+            missing.append("比較する商品5〜7点")
+        if not target_audience.strip():
+            missing.append("想定読者")
+        if not main_keyword.strip():
+            missing.append("狙うキーワード")
+        if missing:
+            st.error("入力を確認してください：" + "、".join(missing))
+        else:
+            with session_scope() as session:
+                set_setting(
+                    session,
+                    "comparison_article_brief",
+                    {
+                        "genre": article_genre.strip(),
+                        "product_ids": list(comparison_ids),
+                        "target_audience": target_audience.strip(),
+                        "main_keyword": main_keyword.strip(),
+                    },
+                )
+            st.success("比較記事の設定を保存しました。投稿文作成から使えます。")
+            st.rerun()
+
+if brief_product_ids:
+    selected_for_article = [
+        product for product in eligible_products if product.id in brief_product_ids
+    ]
+    verified_count = sum(
+        1
+        for product in selected_for_article
+        if product.experience
+        and product.experience.has_used is True
+        and product.experience.verified_at is not None
+    )
+    status_columns = st.columns(2)
+    status_columns[0].metric("比較記事の商品", f"{len(brief_product_ids)} / 5〜7点", border=True)
+    status_columns[1].metric(
+        "体験確認済み",
+        f"{verified_count} / {len(brief_product_ids)}点",
+        border=True,
+        help="実際に使用した商品として記録し、情報確認日がある商品の数です。",
+    )
+    if verified_count < len(brief_product_ids):
+        st.warning(
+            "体験確認済みでない商品は、Claudeが『使った』と書かず、商品情報ベースで比較します。"
+            "一人称の体験を入れたい商品は、下のフォームで実際の記録を保存してください。",
+            icon=":material/fact_check:",
+        )
+
+st.divider()
+st.subheader("商品ごとの情報・体験")
 
 selected_id = st.selectbox(
     "商品",
