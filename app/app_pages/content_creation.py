@@ -59,16 +59,16 @@ if settings.llm_configured:
 else:
     st.caption("LLM拡張を使うには、設定画面でClaude APIキーの設定方法を確認してください。")
 
-creation_type = st.segmented_control(
-    "作成タイプ",
-    ["5〜7商品比較記事", "媒体別投稿"],
-    default="5〜7商品比較記事",
-    key="creation_type",
+channel = st.segmented_control(
+    "投稿先",
+    CHANNELS,
+    default="note",
+    key="creation_channel",
 )
-comparison_mode = creation_type == "5〜7商品比較記事"
+selected_channel = str(channel or "note")
+comparison_mode = selected_channel == "note"
 
 if comparison_mode:
-    selected_channel = "note"
     article_format = "comparison_review"
     article_genre = str(comparison_brief.get("genre", ""))
     main_keyword = str(comparison_brief.get("main_keyword", ""))
@@ -80,11 +80,12 @@ if comparison_mode:
         if int(product_id) in eligible_ids
     ]
     st.info(
-        "商品・体験情報で保存した設定を読み込み、Claudeが指定の7部構成で約3,000字の記事を作ります。",
+        "note投稿では、商品・体験情報で保存した設定と専用プロンプトを使い、"
+        "Claudeが7部構成・約3,000字の比較記事を作ります。",
         icon=":material/article:",
     )
     with st.container(border=True):
-        st.subheader("比較記事の設計")
+        st.subheader("note比較記事の設計")
         with st.form("comparison_generation_form"):
             article_genre = st.text_input(
                 "ジャンル",
@@ -126,7 +127,7 @@ if comparison_mode:
             )
             pr_required = detail_columns[1].checkbox("PR必須案件", value=False)
             generated = st.form_submit_button(
-                "比較記事を作成",
+                "note記事を作成",
                 icon=":material/auto_awesome:",
                 type="primary",
                 disabled=not settings.llm_configured,
@@ -142,13 +143,6 @@ else:
     article_format = "standard"
     article_genre = ""
     main_keyword = ""
-    channel = st.segmented_control(
-        "投稿先",
-        CHANNELS,
-        default="note",
-        key="creation_channel",
-    )
-    selected_channel = str(channel or "note")
     profile = CHANNEL_PROFILES[selected_channel]
     st.info(str(profile["description"]), icon=":material/lightbulb:")
 
