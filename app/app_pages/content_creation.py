@@ -269,12 +269,20 @@ if generated:
                 provider=settings.llm_provider,
                 api_key=settings.claude_api_key,
                 model=settings.anthropic_model,
-                timeout_seconds=settings.anthropic_api_timeout_seconds,
+                timeout_seconds=(
+                    max(settings.anthropic_api_timeout_seconds, 120.0)
+                    if comparison_mode
+                    else settings.anthropic_api_timeout_seconds
+                ),
             )
             spinner_message = (
-                "Claudeが投稿案を作成しています…"
-                if mode == "LLM拡張"
-                else "投稿案を作成しています…"
+                "Claudeがnote記事を作成しています（最大2分ほどかかる場合があります）…"
+                if comparison_mode
+                else (
+                    "Claudeが投稿案を作成しています…"
+                    if mode == "LLM拡張"
+                    else "投稿案を作成しています…"
+                )
             )
             with st.spinner(spinner_message):
                 outputs = generator.generate_variations(
