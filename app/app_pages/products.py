@@ -128,15 +128,15 @@ if brief_product_ids:
     status_columns = st.columns(2)
     status_columns[0].metric("比較記事の商品", f"{len(brief_product_ids)} / 5〜7点", border=True)
     status_columns[1].metric(
-        "体験確認済み",
+        "実使用確認済み",
         f"{verified_count} / {len(brief_product_ids)}点",
         border=True,
         help="実際に使用した商品として記録し、情報確認日がある商品の数です。",
     )
     if verified_count < len(brief_product_ids):
         st.warning(
-            "体験確認済みでない商品は、Claudeが『使った』と書かず、商品情報ベースで比較します。"
-            "一人称の体験を入れたい商品は、下のフォームで実際の記録を保存してください。",
+            "実使用が未確認の商品は、Claudeが『使った』とは書きません。"
+            "レビューから分かったことと自分の意見は、下の短いフォームから記事へ反映できます。",
             icon=":material/fact_check:",
         )
 
@@ -189,70 +189,70 @@ with session_scope() as session:
             st.dataframe(pd.DataFrame(details), hide_index=True)
         st.caption("評価点は候補整理の補助であり、商品の自動決定には使いません。")
 
-    st.subheader("所有・使用経験を記録")
-    st.caption("未使用の商品について使用感を推測で補完しません。")
+    st.subheader("レビュー参考メモ・自分の意見")
+    st.caption(
+        "レビューコメントは長く転載せず、よく見かけた傾向を自分の言葉で要約してください。"
+        "自分の意見は記事の判断材料に使い、未使用の商品を『使った』とは書きません。"
+    )
     with st.form("experience_form"):
-        owns_options = {"未入力": None, "所有している": True, "所有していない": False}
-        used_options = {"未入力": None, "実際に使用した": True, "使用していない": False}
-        owns_default = next(
-            (k for k, v in owns_options.items() if experience and v == experience.owns_product),
-            "未入力",
+        source_options = {
+            "レビューを参照して判断": False,
+            "実際に使用した": True,
+        }
+        source_default = (
+            "実際に使用した"
+            if experience and experience.has_used is True
+            else "レビューを参照して判断"
         )
-        used_default = next(
-            (k for k, v in used_options.items() if experience and v == experience.has_used),
-            "未入力",
+        with st.container(horizontal=True):
+            source_type = st.segmented_control(
+                "情報のもと",
+                list(source_options),
+                default=source_default,
+                help="実際に使った商品だけ「実際に使用した」を選んでください。",
+            )
+            verified = st.date_input(
+                "確認日",
+                value=(
+                    experience.verified_at
+                    if experience and experience.verified_at
+                    else date.today()
+                ),
+            )
+        review_notes = st.text_area(
+            "レビューから分かったこと",
+            value=experience.compared_products if experience else "",
+            placeholder="例：『手入れが簡単』という声が多い一方、大きめという意見も見かけた。",
+            help="個別コメントの丸写しではなく、傾向や比較材料を短くまとめます。",
+            height=110,
         )
-        first = st.columns(3)
-        owns = first[0].selectbox(
-            "商品を所有しているか", list(owns_options), index=list(owns_options).index(owns_default)
+        own_opinion = st.text_area(
+            "自分の意見・記事に入れたい視点",
+            value=experience.memo if experience else "",
+            placeholder="例：毎日使うなら価格差よりも洗いやすさを優先したい。",
+            height=110,
         )
-        used = first[1].selectbox(
-            "実際に使用したか", list(used_options), index=list(used_options).index(used_default)
+        saved = st.form_submit_button(
+            "レビュー・意見を保存",
+            icon=":material/save:",
+            type="primary",
         )
-        verified = first[2].date_input(
-            "情報確認日",
-            value=experience.verified_at if experience and experience.verified_at else date.today(),
-        )
-        usage_period = st.text_input(
-            "使用期間", value=experience.usage_period if experience else ""
-        )
-        usage_scene = st.text_area(
-            "使用した場面", value=experience.usage_scene if experience else ""
-        )
-        positive = st.text_area(
-            "よかった点", value=experience.positive_points if experience else ""
-        )
-        negative = st.text_area(
-            "気になった点", value=experience.negative_points if experience else ""
-        )
-        second = st.columns(2)
-        suitable = second[0].text_area(
-            "向いている人", value=experience.suitable_for if experience else ""
-        )
-        unsuitable = second[1].text_area(
-            "向いていない人", value=experience.unsuitable_for if experience else ""
-        )
-        compared = st.text_area(
-            "比較した商品・比較根拠", value=experience.compared_products if experience else ""
-        )
-        memo = st.text_area("自由メモ", value=experience.memo if experience else "")
-        saved = st.form_submit_button("体験情報を保存", icon=":material/save:", type="primary")
     if saved:
         payload = ExperienceInput(
-            owns_product=owns_options[owns],
-            has_used=used_options[used],
-            usage_period=usage_period,
-            usage_scene=usage_scene,
-            positive_points=positive,
-            negative_points=negative,
-            suitable_for=suitable,
-            unsuitable_for=unsuitable,
-            compared_products=compared,
-            memo=memo,
+            owns_product=experience.owns_product if experience else None,
+            has_used=source_options[str(source_type or source_default)],
+            usage_period=experience.usage_period if experience else "",
+            usage_scene=experience.usage_scene if experience else "",
+            positive_points=experience.positive_points if experience else "",
+            negative_points=experience.negative_points if experience else "",
+            suitable_for=experience.suitable_for if experience else "",
+            unsuitable_for=experience.unsuitable_for if experience else "",
+            compared_products=review_notes,
+            memo=own_opinion,
             verified_at=verified,
         )
         upsert_experience(session, product.id, payload)
-        st.success("体験情報を保存しました。")
+        st.success("レビューの要約と自分の意見を保存しました。")
         st.rerun()
 
     st.divider()
