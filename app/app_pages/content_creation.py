@@ -22,9 +22,7 @@ from app.services.content_generation import (
 )
 from app.streamlit_support import show_compliance_report
 
-st.caption(
-    "商品情報と確認済みの体験情報をもとに、媒体に合う日本語の投稿案を最大3案作成します。"
-)
+st.caption("商品情報と確認済みの体験情報をもとに、媒体に合う日本語の投稿案を最大3案作成します。")
 
 with session_scope() as session:
     products = list_products(session)
@@ -34,6 +32,16 @@ with session_scope() as session:
         "この記事にはアフィリエイト広告が含まれています。",
     )
     pr_policy = get_setting(session, "pr_policy", "always")
+    comparison_brief = get_setting(
+        session,
+        "comparison_article_brief",
+        {
+            "genre": "",
+            "product_ids": [],
+            "target_audience": "",
+            "main_keyword": "",
+        },
+    )
 
 if not products:
     st.info("保存商品がありません。先に商品検索画面で商品を保存してください。")
@@ -51,104 +59,213 @@ if settings.llm_configured:
 else:
     st.caption("LLM拡張を使うには、設定画面でClaude APIキーの設定方法を確認してください。")
 
-channel = st.segmented_control(
-    "投稿先",
-    CHANNELS,
-    default="note",
-    key="creation_channel",
+creation_type = st.segmented_control(
+    "作成タイプ",
+    ["5〜7商品比較記事", "媒体別投稿"],
+    default="5〜7商品比較記事",
+    key="creation_type",
 )
-selected_channel = str(channel or "note")
-profile = CHANNEL_PROFILES[selected_channel]
-st.info(str(profile["description"]), icon=":material/lightbulb:")
+comparison_mode = creation_type == "5〜7商品比較記事"
 
-with st.container(border=True):
-    st.subheader("投稿の設計")
-    with st.form("generation_form"):
-        selected_ids = st.multiselect(
-            "紹介する商品",
-            [product.id for product in products],
-            format_func=lambda product_id: next(
-                f"{product.item_name}｜{product.item_price:,}円"
-                for product in products
-                if product.id == product_id
-            ),
-            help="比較記事では複数商品、短いSNS投稿では1商品がおすすめです。",
-        )
-        theme = st.text_input(
-            "投稿テーマ",
-            placeholder="例：自宅で楽しむコーヒー選び",
-        )
-        target_audience = st.text_input(
-            "想定する読者",
-            value="商品選びで迷っている人",
-            placeholder="例：忙しい朝でも手軽にコーヒーを楽しみたい人",
-        )
-        tone = st.segmented_control(
-            "文章の雰囲気",
-            TONE_OPTIONS,
-            default="信頼感のある丁寧語",
-        )
-        appeal_points = st.pills(
-            "強調するポイント",
-            APPEAL_POINT_OPTIONS,
-            default=["価格", "レビュー評価", "送料"],
-            selection_mode="multi",
-        )
-        custom_message = st.text_area(
-            "入れたい一言（任意）",
-            placeholder="例：ギフト選びにも使える点を伝えたい",
-            help="公開してよい、事実確認済みの内容だけを入力してください。",
-            height=90,
-        )
+if comparison_mode:
+    selected_channel = "note"
+    article_format = "comparison_review"
+    article_genre = str(comparison_brief.get("genre", ""))
+    main_keyword = str(comparison_brief.get("main_keyword", ""))
+    eligible_products = [product for product in products if not product.is_sample]
+    eligible_ids = {product.id for product in eligible_products}
+    default_comparison_ids = [
+        int(product_id)
+        for product_id in comparison_brief.get("product_ids", [])
+        if int(product_id) in eligible_ids
+    ]
+    st.info(
+        "商品・体験情報で保存した設定を読み込み、Claudeが指定の7部構成で約3,000字の記事を作ります。",
+        icon=":material/article:",
+    )
+    with st.container(border=True):
+        st.subheader("比較記事の設計")
+        with st.form("comparison_generation_form"):
+            article_genre = st.text_input(
+                "ジャンル",
+                value=article_genre,
+                placeholder="例：家庭用コーヒーメーカー",
+            )
+            selected_ids = st.multiselect(
+                "比較する商品（5〜7点）",
+                [product.id for product in eligible_products],
+                default=default_comparison_ids,
+                max_selections=7,
+                format_func=lambda product_id: next(
+                    f"{product.item_name}｜{product.item_price:,}円"
+                    for product in eligible_products
+                    if product.id == product_id
+                ),
+            )
+            target_audience = st.text_area(
+                "想定読者（誰が何に困っているか）",
+                value=str(comparison_brief.get("target_audience", "")),
+                placeholder="例：忙しい朝でも手軽に使える1台を選べずに困っている人",
+                height=90,
+            )
+            main_keyword = st.text_input(
+                "狙うキーワード",
+                value=main_keyword,
+                placeholder="例：コーヒーメーカー おすすめ 比較",
+            )
+            custom_message = st.text_area(
+                "追加で入れたい条件（任意）",
+                placeholder="例：お手入れ時間も比較したい",
+                help="公開してよい、事実確認済みの内容だけを入力してください。",
+                height=80,
+            )
+            detail_columns = st.columns(2)
+            link_mode_label = detail_columns[0].selectbox(
+                "リンクの入れ方",
+                ["実際のURL", "プレースホルダー"],
+            )
+            pr_required = detail_columns[1].checkbox("PR必須案件", value=False)
+            generated = st.form_submit_button(
+                "比較記事を作成",
+                icon=":material/auto_awesome:",
+                type="primary",
+                disabled=not settings.llm_configured,
+            )
+    theme = article_genre
+    tone = "信頼感のある丁寧語"
+    appeal_points = tuple(APPEAL_POINT_OPTIONS)
+    target_length = 3_000
+    hashtag_count = 0
+    variation_count = 1
+    mode = "LLM拡張"
+else:
+    article_format = "standard"
+    article_genre = ""
+    main_keyword = ""
+    channel = st.segmented_control(
+        "投稿先",
+        CHANNELS,
+        default="note",
+        key="creation_channel",
+    )
+    selected_channel = str(channel or "note")
+    profile = CHANNEL_PROFILES[selected_channel]
+    st.info(str(profile["description"]), icon=":material/lightbulb:")
 
-        option_columns = st.columns(3)
-        target_length = option_columns[0].number_input(
-            "目標文字数",
-            min_value=int(profile["min_length"]),
-            max_value=int(profile["max_length"]),
-            value=int(profile["target_length"]),
-            step=int(profile["step"]),
-            key=f"target_length_{selected_channel}",
-            help="媒体の厳密な上限ではなく、文章を整えるための目安です。",
-        )
-        hashtag_count = option_columns[1].number_input(
-            "ハッシュタグ数",
-            min_value=0,
-            max_value=10,
-            value=int(profile["hashtag_count"]),
-            step=1,
-            key=f"hashtag_count_{selected_channel}",
-        )
-        variation_count = option_columns[2].segmented_control(
-            "作成する案数",
-            [1, 2, 3],
-            default=3,
-            format_func=lambda value: f"{value}案",
-        )
+    with st.container(border=True):
+        st.subheader("投稿の設計")
+        with st.form("generation_form"):
+            selected_ids = st.multiselect(
+                "紹介する商品",
+                [product.id for product in products],
+                format_func=lambda product_id: next(
+                    f"{product.item_name}｜{product.item_price:,}円"
+                    for product in products
+                    if product.id == product_id
+                ),
+                help="比較記事では複数商品、短いSNS投稿では1商品がおすすめです。",
+            )
+            theme = st.text_input(
+                "投稿テーマ",
+                placeholder="例：自宅で楽しむコーヒー選び",
+            )
+            target_audience = st.text_input(
+                "想定する読者",
+                value="商品選びで迷っている人",
+                placeholder="例：忙しい朝でも手軽にコーヒーを楽しみたい人",
+            )
+            tone = str(
+                st.segmented_control(
+                    "文章の雰囲気",
+                    TONE_OPTIONS,
+                    default="信頼感のある丁寧語",
+                )
+                or "信頼感のある丁寧語"
+            )
+            appeal_points = tuple(
+                str(point)
+                for point in (
+                    st.pills(
+                        "強調するポイント",
+                        APPEAL_POINT_OPTIONS,
+                        default=["価格", "レビュー評価", "送料"],
+                        selection_mode="multi",
+                    )
+                    or []
+                )
+            )
+            custom_message = st.text_area(
+                "入れたい一言（任意）",
+                placeholder="例：ギフト選びにも使える点を伝えたい",
+                help="公開してよい、事実確認済みの内容だけを入力してください。",
+                height=90,
+            )
 
-        detail_columns = st.columns(3)
-        mode = detail_columns[0].selectbox(
-            "生成方式",
-            ["標準テンプレート", "LLM拡張"],
-            help="LLM拡張はClaude Sonnet 5を使います。API利用料はAnthropic側で発生します。",
-        )
-        link_mode_label = detail_columns[1].selectbox(
-            "リンクの入れ方",
-            ["実際のURL", "プレースホルダー"],
-        )
-        pr_required = detail_columns[2].checkbox("PR必須案件", value=False)
+            option_columns = st.columns(3)
+            target_length = option_columns[0].number_input(
+                "目標文字数",
+                min_value=int(profile["min_length"]),
+                max_value=int(profile["max_length"]),
+                value=int(profile["target_length"]),
+                step=int(profile["step"]),
+                key=f"target_length_{selected_channel}",
+                help="媒体の厳密な上限ではなく、文章を整えるための目安です。",
+            )
+            hashtag_count = option_columns[1].number_input(
+                "ハッシュタグ数",
+                min_value=0,
+                max_value=10,
+                value=int(profile["hashtag_count"]),
+                step=1,
+                key=f"hashtag_count_{selected_channel}",
+            )
+            variation_count = int(
+                option_columns[2].segmented_control(
+                    "作成する案数",
+                    [1, 2, 3],
+                    default=3,
+                    format_func=lambda value: f"{value}案",
+                )
+                or 1
+            )
 
-        generated = st.form_submit_button(
-            "投稿案を作成",
-            icon=":material/auto_awesome:",
-            type="primary",
-        )
+            detail_columns = st.columns(3)
+            mode = detail_columns[0].selectbox(
+                "生成方式",
+                ["標準テンプレート", "LLM拡張"],
+                help="LLM拡張はClaude Sonnet 5を使います。API利用料はAnthropic側で発生します。",
+            )
+            link_mode_label = detail_columns[1].selectbox(
+                "リンクの入れ方",
+                ["実際のURL", "プレースホルダー"],
+            )
+            pr_required = detail_columns[2].checkbox("PR必須案件", value=False)
+
+            generated = st.form_submit_button(
+                "投稿案を作成",
+                icon=":material/auto_awesome:",
+                type="primary",
+            )
 
 if generated:
-    if not selected_ids or not theme.strip():
-        st.error("紹介する商品と投稿テーマを入力してください。")
+    validation_errors = []
+    if comparison_mode:
+        if not 5 <= len(selected_ids) <= 7:
+            validation_errors.append("比較する商品を5〜7点選んでください")
+        if not article_genre.strip():
+            validation_errors.append("ジャンルを入力してください")
+        if not target_audience.strip():
+            validation_errors.append("想定読者を入力してください")
+        if not main_keyword.strip():
+            validation_errors.append("狙うキーワードを入力してください")
+    elif not selected_ids or not theme.strip():
+        validation_errors.append("紹介する商品と投稿テーマを入力してください")
+
+    if validation_errors:
+        st.error("入力を確認してください：" + "／".join(validation_errors))
     else:
-        selected_products = [product for product in products if product.id in selected_ids]
+        products_by_id = {product.id: product for product in products}
+        selected_products = [products_by_id[product_id] for product_id in selected_ids]
         if any(product.is_sample for product in selected_products):
             st.warning("架空のサンプル商品を含む投稿案は、操作確認専用で公開できません。")
         effective_pr = pr_required or pr_policy == "always"
@@ -171,9 +288,7 @@ if generated:
                     GenerationContext(
                         products=selected_products,
                         theme=theme.strip(),
-                        link_mode=(
-                            "direct" if link_mode_label == "実際のURL" else "placeholder"
-                        ),
+                        link_mode=("direct" if link_mode_label == "実際のURL" else "placeholder"),
                         disclosure=str(disclosure),
                         pr_required=effective_pr,
                         target_audience=target_audience.strip() or "商品選びで迷っている人",
@@ -182,12 +297,16 @@ if generated:
                         custom_message=custom_message.strip(),
                         target_length=int(target_length),
                         hashtag_count=int(hashtag_count),
+                        article_format=article_format,
+                        article_genre=article_genre.strip(),
+                        main_keyword=main_keyword.strip(),
                     ),
                     int(variation_count or 1),
                 )
-        except ContentGenerationError as exc:
+        except (ContentGenerationError, ValueError) as exc:
             st.error(str(exc), icon=":material/error:")
-            st.info("設定画面でAPIキーを確認するか、標準テンプレートを選択してください。")
+            if mode == "LLM拡張":
+                st.info("設定画面でClaude APIキーとモデル名を確認してください。")
         else:
             generation_id = uuid4().hex[:10]
             st.session_state.generated_variations = [
@@ -198,6 +317,7 @@ if generated:
                     "pr_required": effective_pr,
                     "target_length": int(target_length),
                     "requested_hashtag_count": int(hashtag_count),
+                    "article_format": article_format,
                     "generation_id": generation_id,
                 }
                 for output in outputs
