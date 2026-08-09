@@ -20,7 +20,7 @@ from app.services.content_generation import (
     analyze_copy,
     get_content_generator,
 )
-from app.streamlit_support import show_compliance_report
+from app.streamlit_support import show_compliance_report, show_note_posting_assistant
 
 st.caption("商品情報と確認済みの体験情報をもとに、媒体に合う日本語の投稿案を最大3案作成します。")
 
@@ -423,6 +423,14 @@ if drafts:
         "本文・リンク・広告表記・商品情報を確認しました（保存しても自動投稿されません）",
         key=f"confirm_draft_save_{generation_id}_{draft_index}",
     )
+    if str(draft["channel"]) == "note":
+        show_note_posting_assistant(
+            title=title,
+            body=body,
+            enabled=confirm and report.status != "投稿不可",
+            key=f"open_note_editor_{generation_id}_{draft_index}",
+        )
+
     action_columns = st.columns(2)
     safe_theme = re.sub(r"[^\w一-龥ぁ-んァ-ヴー-]", "_", str(draft["theme"]))[:40]
     action_columns[0].download_button(
