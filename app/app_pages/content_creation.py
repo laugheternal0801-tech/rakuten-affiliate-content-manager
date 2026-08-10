@@ -20,6 +20,11 @@ from app.services.content_generation import (
     analyze_copy,
     get_content_generator,
 )
+from app.services.note_image_generation import (
+    GPT_IMAGE_MODEL,
+    NoteImageGenerationError,
+    OpenAINoteImageGenerator,
+)
 from app.streamlit_support import show_compliance_report, show_note_posting_assistant
 
 st.caption("商品情報と確認済みの体験情報をもとに、媒体に合う日本語の投稿案を最大3案作成します。")
@@ -49,6 +54,7 @@ if not products:
 
 settings = get_settings()
 st.session_state.setdefault("generated_variations", [])
+st.session_state.setdefault("generated_note_images", {})
 
 if settings.llm_configured:
     st.badge(
@@ -397,6 +403,101 @@ if drafts:
                         st.markdown("\n".join(f"- {item}" for item in value))
                     else:
                         st.write(value)
+
+    if str(draft["channel"]) == "note":
+        image_state_key = f"{generation_id}_{draft_index}"
+        image_theme_key = f"note_image_theme_{image_state_key}"
+        image_motifs_key = f"note_image_motifs_{image_state_key}"
+        if image_theme_key not in st.session_state:
+            st.session_state[image_theme_key] = title.strip() or str(draft["theme"])
+
+        with st.container(border=True):
+            st.subheader("noteアイキャッチ画像")
+            if settings.note_image_generation_configured:
+                st.badge(
+                    f"{GPT_IMAGE_MODEL} 利用可能",
+                    icon=":material/image:",
+                    color="green",
+                )
+            else:
+                st.info(
+                    "画像生成を使うには、設定画面の「noteアイキャッチ画像」に"
+                    "OpenAI APIキーを登録してください。",
+                    icon=":material/key:",
+                )
+
+            with st.form(f"note_image_generation_form_{image_state_key}"):
+                image_theme = st.text_input(
+                    "記事テーマ",
+                    key=image_theme_key,
+                    placeholder="例：忙しい朝に選ぶドリップコーヒー比較",
+                )
+                image_motifs = st.text_area(
+                    "入れたい要素（任意）",
+                    key=image_motifs_key,
+                    placeholder="例：白いコーヒーカップ、木製テーブル、朝の自然光",
+                    help="商品ロゴ・価格・URLは入れず、雰囲気や小物を短く指定してください。",
+                    height=80,
+                )
+                generate_note_image = st.form_submit_button(
+                    "アイキャッチ画像を1枚生成",
+                    icon=":material/auto_awesome:",
+                    type="primary",
+                    disabled=not settings.note_image_generation_configured,
+                )
+
+            st.caption(
+                "GPT Image 2のmedium品質で生成します。1回ごとにOpenAI API利用料が発生し、"
+                "最大2分ほどかかる場合があります。"
+            )
+
+            if generate_note_image:
+                if not image_theme.strip():
+                    st.error("記事テーマを入力してください。")
+                else:
+                    try:
+                        generator = OpenAINoteImageGenerator(
+                            settings.openai_api_key,
+                            timeout_seconds=settings.openai_image_timeout_seconds,
+                        )
+                        with st.spinner(
+                            "GPT Image 2がnote用アイキャッチを生成しています（最大2分ほど）…"
+                        ):
+                            generated_image = generator.generate(image_theme, image_motifs)
+                    except (NoteImageGenerationError, ValueError) as exc:
+                        st.error(str(exc), icon=":material/error:")
+                    else:
+                        images = dict(st.session_state.generated_note_images)
+                        images[image_state_key] = {
+                            "image_bytes": generated_image.image_bytes,
+                            "prompt": generated_image.prompt,
+                            "model": generated_image.model,
+                        }
+                        st.session_state.generated_note_images = images
+                        st.success("note推奨サイズの画像を生成しました。下のボタンから保存できます。")
+
+            note_images = st.session_state.get("generated_note_images", {})
+            image_result = note_images.get(image_state_key)
+            if image_result:
+                image_bytes = image_result["image_bytes"]
+                st.image(
+                    image_bytes,
+                    caption="note見出し画像｜1280×670px PNG",
+                    width="stretch",
+                )
+                image_file_theme = re.sub(
+                    r"[^\w一-龥ぁ-んァ-ヴー-]", "_", str(st.session_state[image_theme_key])
+                )[:40]
+                st.download_button(
+                    "アイキャッチ画像をPNG保存",
+                    data=image_bytes,
+                    file_name=f"{image_file_theme or 'noteアイキャッチ'}_1280x670.png",
+                    mime="image/png",
+                    icon=":material/download:",
+                    on_click="ignore",
+                )
+                with st.expander("画像生成に使ったプロンプトを見る"):
+                    st.code(str(image_result["prompt"]), language="text", wrap_lines=True)
 
     selected_products = [product for product in products if product.id in draft["product_ids"]]
     verified_dates = [
