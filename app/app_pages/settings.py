@@ -124,12 +124,51 @@ with st.container(border=True):
     )
     st.caption("Claude APIの利用料はAnthropicアカウント側で発生します。")
 
+st.subheader("noteアイキャッチ画像（GPT Image 2）")
+with st.container(border=True):
+    if settings.note_image_generation_configured:
+        st.badge("OpenAI API 接続設定あり", icon=":material/cloud_done:", color="green")
+        st.write("note用画像の生成には **GPT Image 2（`gpt-image-2`）** を使用します。")
+        st.caption("APIキーそのものは画面やログへ表示しません。")
+    else:
+        st.badge("APIキー未設定", icon=":material/key_off:", color="orange")
+        st.write("note記事作成後にアイキャッチ画像を生成するにはOpenAI APIキーが必要です。")
+
+    st.link_button(
+        "OpenAI PlatformでAPIキーを作成",
+        "https://platform.openai.com/api-keys",
+        icon=":material/open_in_new:",
+    )
+    st.markdown("**公開アプリ（Streamlit Community Cloud）**")
+    st.write("アプリの管理画面で「Settings」→「Secrets」を開き、次を追加して保存します。")
+    st.code(
+        'OPENAI_API_KEY = "ここにOpenAIのAPIキー"\n'
+        "OPENAI_IMAGE_TIMEOUT_SECONDS = 150",
+        language="toml",
+    )
+    st.markdown("**Windowsのローカルアプリ**")
+    st.write("プロジェクトの `.env` に次を追加し、アプリを再起動します。")
+    st.code(
+        "OPENAI_API_KEY=ここにOpenAIのAPIキー\n"
+        "OPENAI_IMAGE_TIMEOUT_SECONDS=150",
+        language="dotenv",
+    )
+    st.warning(
+        "APIキーはこの画面やチャットへ貼り付けず、Secretsまたは.envへ直接入力してください。",
+        icon=":material/security:",
+    )
+    st.caption(
+        "画像は1回につき1枚生成します。OpenAI APIの利用料が発生し、"
+        "生成には最大2分ほどかかる場合があります。"
+    )
+
 st.subheader("安全設計")
 st.markdown(
     """
 - 楽天ID・パスワード・二段階認証コードは取得・保存しません。
 - 商品情報は楽天公式APIだけから取得し、Webスクレイピングは行いません。
-- 商品画像のダウンロード、切り抜き、文字入れ、ロゴ追加は行いません。
+- 楽天の商品画像のダウンロード、切り抜き、文字入れ、ロゴ追加は行いません。
+- GPT Image 2の生成画像は、note推奨の1280×670pxへ整えて利用者が手動保存します。
 - 自動投稿・自動DM・自動コメント・自動リプライ機能はありません。
 """
 )
