@@ -90,6 +90,17 @@ class OpenAINoteImageGenerator:
         self._client = client or httpx.Client(timeout=timeout_seconds)
 
     def generate(self, article_theme: str, motifs: str = "") -> GeneratedNoteImage:
+        return self.generate_variations(article_theme, motifs, count=1)[0]
+
+    def generate_variations(
+        self,
+        article_theme: str,
+        motifs: str = "",
+        *,
+        count: int = 3,
+    ) -> list[GeneratedNoteImage]:
+        if count not in {1, 3}:
+            raise ValueError("画像の案数は1枚または3枚を選んでください。")
         prompt = build_note_image_prompt(article_theme, motifs)
         try:
             response = self._client.post(
@@ -103,6 +114,7 @@ class OpenAINoteImageGenerator:
                     "prompt": prompt,
                     "size": API_IMAGE_SIZE,
                     "quality": "medium",
+                    "n": count,
                 },
             )
         except httpx.TimeoutException as exc:
@@ -120,17 +132,27 @@ class OpenAINoteImageGenerator:
 
         try:
             payload = response.json()
-            encoded_image = payload["data"][0]["b64_json"]
-            if not isinstance(encoded_image, str) or not encoded_image:
-                raise ValueError("empty image")
-            raw_image = base64.b64decode(encoded_image, validate=True)
-            image_bytes = _prepare_note_image(raw_image)
+            image_items = payload["data"]
+            if not isinstance(image_items, list) or len(image_items) != count:
+                raise ValueError("unexpected image count")
+            generated_images: list[GeneratedNoteImage] = []
+            for item in image_items:
+                encoded_image = item["b64_json"]
+                if not isinstance(encoded_image, str) or not encoded_image:
+                    raise ValueError("empty image")
+                raw_image = base64.b64decode(encoded_image, validate=True)
+                generated_images.append(
+                    GeneratedNoteImage(
+                        image_bytes=_prepare_note_image(raw_image),
+                        prompt=prompt,
+                    )
+                )
         except (KeyError, IndexError, TypeError, ValueError, binascii.Error) as exc:
             raise NoteImageGenerationError(
                 "GPT Image 2の応答から画像を読み取れませんでした。もう一度生成してください。"
             ) from exc
 
-        return GeneratedNoteImage(image_bytes=image_bytes, prompt=prompt)
+        return generated_images
 
     @staticmethod
     def _raise_api_error(response: httpx.Response) -> None:
