@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, time
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
@@ -82,8 +83,49 @@ else:
         content = get_content(session, int(selected_id))
         assert content is not None
         initial_body = content.approved_body or content.draft_body
+        seo_details = get_setting(
+            session,
+            f"content_seo_{content.id}",
+            {"seo_title": content.title, "summary": "", "hashtags": ""},
+        )
+        with st.container(border=True):
+            st.markdown("**別の商品向けに作り直す**")
+            st.caption(
+                "媒体・テーマ・商品選択を投稿文作成画面へ引き継ぎます。"
+                "元の本文は上書きせず、新しい投稿案として生成します。"
+            )
+            if st.button(
+                "この投稿の設定を複製",
+                icon=":material/content_copy:",
+                key=f"clone_content_{content.id}",
+            ):
+                st.session_state["clone_content_request"] = {
+                    "source_content_id": content.id,
+                    "source_title": content.title,
+                    "channel": content.channel,
+                    "theme": content.theme,
+                    "main_keyword": content.theme,
+                    "product_ids": [product.id for product in content.products],
+                }
+                st.switch_page(Path(__file__).resolve().with_name("content_creation.py"))
+
         with st.form("content_review_form"):
             approved_body = st.text_area("確認・修正済み本文", value=initial_body, height=500)
+            if content.channel == "note":
+                st.markdown("**SEO・投稿情報**")
+                seo_title = st.text_input(
+                    "SEOタイトル", value=str(seo_details.get("seo_title", content.title))
+                )
+                seo_summary = st.text_area(
+                    "記事要約", value=str(seo_details.get("summary", "")), height=100
+                )
+                seo_hashtags = st.text_input(
+                    "推奨ハッシュタグ", value=str(seo_details.get("hashtags", ""))
+                )
+            else:
+                seo_title = ""
+                seo_summary = ""
+                seo_hashtags = ""
             status = st.selectbox(
                 "ステータス",
                 STATUSES,
@@ -154,6 +196,16 @@ else:
                     compliance_status=report.status,
                     compliance_report=report.to_dict(),
                 )
+                if content.channel == "note":
+                    set_setting(
+                        session,
+                        f"content_seo_{content.id}",
+                        {
+                            "seo_title": seo_title.strip(),
+                            "summary": seo_summary.strip(),
+                            "hashtags": seo_hashtags.strip(),
+                        },
+                    )
                 st.success("投稿管理情報を保存しました。外部SNSへの投稿処理は行っていません。")
                 st.rerun()
 
