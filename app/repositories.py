@@ -6,7 +6,15 @@ from typing import Any
 from sqlalchemy import Select, delete, func, select, update
 from sqlalchemy.orm import Session, selectinload
 
-from app.models import AppSetting, Content, ContentProduct, Experience, Performance, Product
+from app.models import (
+    AppSetting,
+    Content,
+    ContentProduct,
+    Experience,
+    NoteImageAsset,
+    Performance,
+    Product,
+)
 from app.schemas import ExperienceInput
 
 DEFAULT_SCORE_WEIGHTS = {
@@ -129,6 +137,63 @@ def get_content(session: Session, content_id: int) -> Content | None:
         .where(Content.id == content_id)
     )
     return session.scalar(query)
+
+
+def save_note_image_assets(
+    session: Session,
+    *,
+    batch_id: str,
+    article_title: str,
+    theme: str,
+    motifs: str,
+    prompt: str,
+    model: str,
+    image_data: list[bytes],
+) -> list[NoteImageAsset]:
+    assets = [
+        NoteImageAsset(
+            batch_id=batch_id,
+            article_title=article_title,
+            theme=theme,
+            motifs=motifs,
+            prompt=prompt,
+            model=model,
+            image_data=data,
+            is_selected=len(image_data) == 1,
+        )
+        for data in image_data
+    ]
+    session.add_all(assets)
+    session.flush()
+    return assets
+
+
+def list_note_image_assets(session: Session, limit: int = 30) -> list[NoteImageAsset]:
+    query = select(NoteImageAsset).order_by(NoteImageAsset.created_at.desc()).limit(limit)
+    return list(session.scalars(query).all())
+
+
+def select_note_image_asset(session: Session, image_id: int) -> NoteImageAsset | None:
+    asset = session.get(NoteImageAsset, image_id)
+    if asset is None:
+        return None
+    session.execute(
+        update(NoteImageAsset)
+        .where(NoteImageAsset.batch_id == asset.batch_id)
+        .values(is_selected=False)
+    )
+    asset.is_selected = True
+    session.flush()
+    return asset
+
+
+def delete_note_image_asset(session: Session, image_id: int) -> bool:
+    asset = session.get(NoteImageAsset, image_id)
+    if asset is None:
+        return False
+    session.delete(asset)
+    session.flush()
+    return True
 
 
 def save_content_review(
