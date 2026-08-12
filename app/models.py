@@ -11,6 +11,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
+    LargeBinary,
     String,
     Text,
     UniqueConstraint,
@@ -142,6 +143,21 @@ class Performance(Base):
     status: Mapped[str] = mapped_column(String(100), default="")
     theme: Mapped[str] = mapped_column(String(255), default="")
     source_file: Mapped[str] = mapped_column(String(255), default="")
+
+
+class NoteImageAsset(Base):
+    __tablename__ = "note_image_assets"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    batch_id: Mapped[str] = mapped_column(String(64), index=True)
+    article_title: Mapped[str] = mapped_column(String(1000), default="")
+    theme: Mapped[str] = mapped_column(String(1000), default="")
+    motifs: Mapped[str] = mapped_column(Text, default="")
+    prompt: Mapped[str] = mapped_column(Text, default="")
+    model: Mapped[str] = mapped_column(String(100), default="gpt-image-2")
+    image_data: Mapped[bytes] = mapped_column(LargeBinary)
+    is_selected: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class AppSetting(Base):
