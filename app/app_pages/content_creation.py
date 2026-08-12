@@ -8,7 +8,17 @@ import streamlit as st
 
 from app.config import get_settings
 from app.database import session_scope
-from app.repositories import create_content, get_setting, list_products
+from app.repositories import (
+    create_content,
+    delete_note_image_asset,
+    get_setting,
+    list_note_image_assets,
+    list_products,
+    save_note_image_assets,
+    select_note_image_asset,
+    set_setting,
+)
+from app.services.article_revision import REVISION_TARGETS, ClaudeArticleRevisionService
 from app.services.compliance import check_content
 from app.services.content_generation import (
     APPEAL_POINT_OPTIONS,
@@ -54,7 +64,19 @@ if not products:
 
 settings = get_settings()
 st.session_state.setdefault("generated_variations", [])
-st.session_state.setdefault("generated_note_images", {})
+st.session_state.setdefault("pending_article_revisions", {})
+
+clone_request = st.session_state.pop("clone_content_request", None)
+if isinstance(clone_request, dict):
+    st.session_state["active_clone_request"] = clone_request
+    st.session_state["creation_channel"] = str(clone_request.get("channel", "note"))
+active_clone = st.session_state.get("active_clone_request")
+if isinstance(active_clone, dict):
+    st.info(
+        f"過去記事「{active_clone.get('source_title', '')}」の設定を複製しました。"
+        "商品やテーマを入れ替えて、新しい記事として作成できます。",
+        icon=":material/content_copy:",
+    )
 
 if settings.llm_configured:
     st.badge(
@@ -76,13 +98,26 @@ comparison_mode = selected_channel == "note"
 
 if comparison_mode:
     article_format = "comparison_review"
-    article_genre = str(comparison_brief.get("genre", ""))
-    main_keyword = str(comparison_brief.get("main_keyword", ""))
+    article_genre = str(
+        active_clone.get("theme", "")
+        if isinstance(active_clone, dict)
+        else comparison_brief.get("genre", "")
+    )
+    main_keyword = str(
+        active_clone.get("main_keyword", active_clone.get("theme", ""))
+        if isinstance(active_clone, dict)
+        else comparison_brief.get("main_keyword", "")
+    )
     eligible_products = [product for product in products if not product.is_sample]
     eligible_ids = {product.id for product in eligible_products}
+    requested_default_ids = (
+        active_clone.get("product_ids", [])
+        if isinstance(active_clone, dict)
+        else comparison_brief.get("product_ids", [])
+    )
     default_comparison_ids = [
         int(product_id)
-        for product_id in comparison_brief.get("product_ids", [])
+        for product_id in requested_default_ids
         if int(product_id) in eligible_ids
     ]
     st.info(
@@ -111,7 +146,11 @@ if comparison_mode:
             )
             target_audience = st.text_area(
                 "想定読者（誰が何に困っているか）",
-                value=str(comparison_brief.get("target_audience", "")),
+                value=str(
+                    active_clone.get("target_audience", "")
+                    if isinstance(active_clone, dict)
+                    else comparison_brief.get("target_audience", "")
+                ),
                 placeholder="例：忙しい朝でも手軽に使える1台を選べずに困っている人",
                 height=90,
             )
@@ -125,6 +164,17 @@ if comparison_mode:
                 placeholder="例：お手入れ時間も比較したい",
                 help="公開してよい、事実確認済みの内容だけを入力してください。",
                 height=80,
+            )
+            create_image_together = st.checkbox(
+                "記事と一緒にアイキャッチ画像も1枚作る",
+                value=False,
+                disabled=not settings.note_image_generation_configured,
+                help="記事が完成したあと、そのタイトルをテーマにGPT Image 2で1枚生成します。",
+            )
+            together_image_motifs = st.text_input(
+                "アイキャッチに入れたい要素（任意）",
+                placeholder="例：白いカップ、木製テーブル、朝の自然光",
+                disabled=not settings.note_image_generation_configured,
             )
             detail_columns = st.columns(2)
             link_mode_label = detail_columns[0].selectbox(
@@ -146,6 +196,8 @@ if comparison_mode:
     variation_count = 1
     mode = "LLM拡張"
 else:
+    create_image_together = False
+    together_image_motifs = ""
     article_format = "standard"
     article_genre = ""
     main_keyword = ""
@@ -164,9 +216,23 @@ else:
                     if product.id == product_id
                 ),
                 help="比較記事では複数商品、短いSNS投稿では1商品がおすすめです。",
+                default=(
+                    [
+                        int(product_id)
+                        for product_id in active_clone.get("product_ids", [])
+                        if int(product_id) in {product.id for product in products}
+                    ]
+                    if isinstance(active_clone, dict)
+                    else []
+                ),
             )
             theme = st.text_input(
                 "投稿テーマ",
+                value=(
+                    str(active_clone.get("theme", ""))
+                    if isinstance(active_clone, dict)
+                    else ""
+                ),
                 placeholder="例：自宅で楽しむコーヒー選び",
             )
             target_audience = st.text_input(
@@ -330,6 +396,38 @@ if generated:
                 }
                 for output in outputs
             ]
+            st.session_state.pop("active_clone_request", None)
+            if comparison_mode and create_image_together:
+                try:
+                    image_generator = OpenAINoteImageGenerator(
+                        settings.openai_api_key,
+                        timeout_seconds=settings.openai_image_timeout_seconds,
+                    )
+                    with st.spinner(
+                        "記事が完成しました。続けてGPT Image 2がアイキャッチを作成しています…"
+                    ):
+                        generated_image = image_generator.generate(
+                            outputs[0].title,
+                            together_image_motifs,
+                        )
+                    with session_scope() as session:
+                        saved_assets = save_note_image_assets(
+                            session,
+                            batch_id=f"{generation_id}_0",
+                            article_title=outputs[0].title,
+                            theme=outputs[0].title,
+                            motifs=together_image_motifs,
+                            prompt=generated_image.prompt,
+                            model=generated_image.model,
+                            image_data=[generated_image.image_bytes],
+                        )
+                    st.session_state[f"selected_note_image_{generation_id}_0"] = saved_assets[0].id
+                    st.success("記事とアイキャッチ画像をまとめて作成しました。")
+                except (NoteImageGenerationError, ValueError) as exc:
+                    st.warning(
+                        f"記事は作成できましたが、画像生成だけ失敗しました：{exc}",
+                        icon=":material/image_not_supported:",
+                    )
 
 drafts = st.session_state.get("generated_variations", [])
 if drafts:
@@ -345,18 +443,33 @@ if drafts:
     )
     draft = drafts[int(selected_index or 0)]
     draft_index = int(selected_index or 0)
+    draft_state_key = f"{generation_id}_{draft_index}"
+    title_widget_key = f"generated_title_{draft_state_key}"
+    body_widget_key = f"generated_body_{draft_state_key}"
+    apply_revision = st.session_state.pop("apply_article_revision", None)
+    if isinstance(apply_revision, dict) and apply_revision.get("draft_key") == draft_state_key:
+        draft["title"] = str(apply_revision["title"])
+        draft["body"] = str(apply_revision["body"])
+        drafts[draft_index] = draft
+        st.session_state.generated_variations = drafts
+        st.session_state.pop(title_widget_key, None)
+        st.session_state.pop(body_widget_key, None)
+        pending = dict(st.session_state.pending_article_revisions)
+        pending.pop(draft_state_key, None)
+        st.session_state.pending_article_revisions = pending
+        st.toast("選択した部分の修正文を反映しました。")
 
     with st.container(border=True):
         title = st.text_input(
             "タイトル",
             value=str(draft["title"]),
-            key=f"generated_title_{generation_id}_{draft_index}",
+            key=title_widget_key,
         )
         body = st.text_area(
             "投稿本文",
             value=str(draft["body"]),
             height=520,
-            key=f"generated_body_{generation_id}_{draft_index}",
+            key=body_widget_key,
         )
 
         analysis = analyze_copy(body, int(draft["target_length"]))
@@ -405,7 +518,119 @@ if drafts:
                         st.write(value)
 
     if str(draft["channel"]) == "note":
-        image_state_key = f"{generation_id}_{draft_index}"
+        metadata = dict(draft.get("metadata", {}))
+        seo_title_key = f"seo_title_{draft_state_key}"
+        seo_summary_key = f"seo_summary_{draft_state_key}"
+        seo_hashtags_key = f"seo_hashtags_{draft_state_key}"
+        st.session_state.setdefault(seo_title_key, str(metadata.get("SEOタイトル", title)))
+        st.session_state.setdefault(seo_summary_key, str(metadata.get("記事要約", "")))
+        suggested_hashtags = metadata.get("推奨ハッシュタグ", [])
+        if isinstance(suggested_hashtags, list):
+            suggested_hashtag_text = " ".join(str(tag) for tag in suggested_hashtags)
+        else:
+            suggested_hashtag_text = str(suggested_hashtags)
+        st.session_state.setdefault(seo_hashtags_key, suggested_hashtag_text)
+
+        with st.container(border=True):
+            st.subheader("SEO・投稿情報")
+            st.caption("Claudeが記事とは別に作成した候補です。投稿前に自由に編集できます。")
+            st.text_input("SEOタイトル", key=seo_title_key)
+            st.text_area("記事要約", key=seo_summary_key, height=100)
+            st.text_input("推奨ハッシュタグ", key=seo_hashtags_key)
+
+        with st.container(border=True):
+            st.subheader("記事の一部分だけ再生成")
+            st.caption("選んだ部分だけをClaudeが書き直します。確認してから本文へ反映できます。")
+            with st.form(f"article_revision_form_{draft_state_key}"):
+                revision_target = st.selectbox(
+                    "再生成する部分",
+                    list(REVISION_TARGETS),
+                    format_func=lambda target: REVISION_TARGETS[target],
+                )
+                revision_instruction = st.text_input(
+                    "直し方の希望（任意）",
+                    placeholder="例：もう少し短く、初心者にも分かりやすく",
+                )
+                request_revision = st.form_submit_button(
+                    "選んだ部分を再生成",
+                    icon=":material/refresh:",
+                    type="primary",
+                    disabled=not settings.llm_configured,
+                )
+
+            if request_revision:
+                try:
+                    revision_service = ClaudeArticleRevisionService(
+                        settings.claude_api_key,
+                        model=settings.anthropic_model,
+                        timeout_seconds=settings.anthropic_api_timeout_seconds,
+                    )
+                    with st.spinner("Claudeが選択部分だけを書き直しています…"):
+                        revision = revision_service.revise(
+                            title=title,
+                            body=body,
+                            target=str(revision_target),
+                            instruction=revision_instruction,
+                        )
+                except (ContentGenerationError, ValueError) as exc:
+                    st.error(str(exc), icon=":material/error:")
+                else:
+                    pending = dict(st.session_state.pending_article_revisions)
+                    pending[draft_state_key] = {
+                        "target_label": revision.target_label,
+                        "original": revision.original,
+                        "replacement": revision.replacement,
+                        "summary": revision.summary,
+                        "title": revision.title,
+                        "body": revision.body,
+                    }
+                    st.session_state.pending_article_revisions = pending
+
+            pending_revision = st.session_state.pending_article_revisions.get(draft_state_key)
+            if isinstance(pending_revision, dict):
+                st.info(
+                    f"{pending_revision['target_label']}を修正しました："
+                    f"{pending_revision['summary']}"
+                )
+                before_column, after_column = st.columns(2)
+                before_column.text_area(
+                    "変更前",
+                    value=str(pending_revision["original"]),
+                    height=240,
+                    disabled=True,
+                    key=f"revision_before_{draft_state_key}",
+                )
+                after_column.text_area(
+                    "変更後",
+                    value=str(pending_revision["replacement"]),
+                    height=240,
+                    disabled=True,
+                    key=f"revision_after_{draft_state_key}",
+                )
+                with st.container(horizontal=True):
+                    if st.button(
+                        "修正文を本文に反映",
+                        key=f"apply_revision_{draft_state_key}",
+                        type="primary",
+                        icon=":material/check:",
+                    ):
+                        st.session_state.apply_article_revision = {
+                            "draft_key": draft_state_key,
+                            "title": pending_revision["title"],
+                            "body": pending_revision["body"],
+                        }
+                        st.rerun()
+                    if st.button(
+                        "修正文を破棄",
+                        key=f"discard_revision_{draft_state_key}",
+                        icon=":material/delete:",
+                    ):
+                        pending = dict(st.session_state.pending_article_revisions)
+                        pending.pop(draft_state_key, None)
+                        st.session_state.pending_article_revisions = pending
+                        st.rerun()
+
+        image_state_key = draft_state_key
         image_theme_key = f"note_image_theme_{image_state_key}"
         image_motifs_key = f"note_image_motifs_{image_state_key}"
         if image_theme_key not in st.session_state:
@@ -439,15 +664,25 @@ if drafts:
                     help="商品ロゴ・価格・URLは入れず、雰囲気や小物を短く指定してください。",
                     height=80,
                 )
+                image_count = int(
+                    st.segmented_control(
+                        "作成する画像数",
+                        [1, 3],
+                        default=3,
+                        format_func=lambda count: f"{count}枚",
+                        help="3枚を選ぶと、1回の操作で比較候補を3案作成します。",
+                    )
+                    or 1
+                )
                 generate_note_image = st.form_submit_button(
-                    "アイキャッチ画像を1枚生成",
+                    "アイキャッチ画像を生成",
                     icon=":material/auto_awesome:",
                     type="primary",
                     disabled=not settings.note_image_generation_configured,
                 )
 
             st.caption(
-                "GPT Image 2のmedium品質で生成します。1回ごとにOpenAI API利用料が発生し、"
+                "GPT Image 2のmedium品質で生成します。選んだ枚数分の画像生成として扱われ、"
                 "最大2分ほどかかる場合があります。"
             )
 
@@ -456,48 +691,146 @@ if drafts:
                     st.error("記事テーマを入力してください。")
                 else:
                     try:
-                        generator = OpenAINoteImageGenerator(
+                        image_generator = OpenAINoteImageGenerator(
                             settings.openai_api_key,
                             timeout_seconds=settings.openai_image_timeout_seconds,
                         )
                         with st.spinner(
                             "GPT Image 2がnote用アイキャッチを生成しています（最大2分ほど）…"
                         ):
-                            generated_image = generator.generate(image_theme, image_motifs)
+                            generated_images = image_generator.generate_variations(
+                                image_theme,
+                                image_motifs,
+                                count=image_count,
+                            )
                     except (NoteImageGenerationError, ValueError) as exc:
                         st.error(str(exc), icon=":material/error:")
                     else:
-                        images = dict(st.session_state.generated_note_images)
-                        images[image_state_key] = {
-                            "image_bytes": generated_image.image_bytes,
-                            "prompt": generated_image.prompt,
-                            "model": generated_image.model,
-                        }
-                        st.session_state.generated_note_images = images
-                        st.success("note推奨サイズの画像を生成しました。下のボタンから保存できます。")
+                        batch_id = f"{image_state_key}_{uuid4().hex[:8]}"
+                        with session_scope() as session:
+                            saved_assets = save_note_image_assets(
+                                session,
+                                batch_id=batch_id,
+                                article_title=title,
+                                theme=image_theme,
+                                motifs=image_motifs,
+                                prompt=generated_images[0].prompt,
+                                model=generated_images[0].model,
+                                image_data=[image.image_bytes for image in generated_images],
+                            )
+                        st.session_state[f"current_note_image_batch_{image_state_key}"] = batch_id
+                        if len(saved_assets) == 1:
+                            st.session_state[f"selected_note_image_{image_state_key}"] = (
+                                saved_assets[0].id
+                            )
+                        st.success(
+                            f"note推奨サイズの画像を{len(saved_assets)}枚生成し、履歴へ保存しました。"
+                        )
 
-            note_images = st.session_state.get("generated_note_images", {})
-            image_result = note_images.get(image_state_key)
-            if image_result:
-                image_bytes = image_result["image_bytes"]
+            with session_scope() as session:
+                image_assets = list_note_image_assets(session)
+            current_batch_id = st.session_state.get(
+                f"current_note_image_batch_{image_state_key}", image_state_key
+            )
+            current_assets = [
+                asset for asset in image_assets if asset.batch_id == current_batch_id
+            ]
+            if current_assets:
+                st.markdown("**今回の候補**")
+                candidate_columns = st.columns(len(current_assets))
+                for candidate_number, (column, asset) in enumerate(
+                    zip(candidate_columns, current_assets, strict=True), 1
+                ):
+                    with column:
+                        st.image(asset.image_data, caption=f"候補{candidate_number}")
+                        if st.button(
+                            "この画像を選ぶ",
+                            key=f"select_note_image_{asset.id}",
+                            type="primary" if asset.is_selected else "secondary",
+                            icon=":material/check_circle:",
+                        ):
+                            with session_scope() as session:
+                                select_note_image_asset(session, asset.id)
+                            st.session_state[f"selected_note_image_{image_state_key}"] = asset.id
+                            st.rerun()
+
+            selected_asset_id = st.session_state.get(f"selected_note_image_{image_state_key}")
+            image_result = next(
+                (asset for asset in image_assets if asset.id == selected_asset_id),
+                next((asset for asset in current_assets if asset.is_selected), None),
+            )
+            if image_result is not None:
+                st.markdown("**選択中の画像**")
                 st.image(
-                    image_bytes,
+                    image_result.image_data,
                     caption="note見出し画像｜1280×670px PNG",
                     width="stretch",
                 )
                 image_file_theme = re.sub(
-                    r"[^\w一-龥ぁ-んァ-ヴー-]", "_", str(st.session_state[image_theme_key])
+                    r"[^\w一-龥ぁ-んァ-ヴー-]", "_", image_result.theme
                 )[:40]
                 st.download_button(
                     "アイキャッチ画像をPNG保存",
-                    data=image_bytes,
+                    data=image_result.image_data,
                     file_name=f"{image_file_theme or 'noteアイキャッチ'}_1280x670.png",
                     mime="image/png",
                     icon=":material/download:",
                     on_click="ignore",
                 )
                 with st.expander("画像生成に使ったプロンプトを見る"):
-                    st.code(str(image_result["prompt"]), language="text", wrap_lines=True)
+                    st.code(image_result.prompt, language="text", wrap_lines=True)
+
+            if image_assets:
+                with st.expander("画像の生成履歴・削除", icon=":material/history:"):
+                    history_asset_id = st.selectbox(
+                        "履歴から画像を選択",
+                        [asset.id for asset in image_assets],
+                        format_func=lambda asset_id: next(
+                            (
+                                f"#{asset.id}｜{asset.created_at:%Y/%m/%d %H:%M}｜"
+                                f"{asset.theme[:35]}"
+                                + ("｜選択中" if asset.is_selected else "")
+                            )
+                            for asset in image_assets
+                            if asset.id == asset_id
+                        ),
+                        key=f"note_image_history_{image_state_key}",
+                    )
+                    history_asset = next(
+                        asset for asset in image_assets if asset.id == history_asset_id
+                    )
+                    st.image(history_asset.image_data, caption=history_asset.theme, width=480)
+                    with st.container(horizontal=True):
+                        if st.button(
+                            "履歴の画像を選択",
+                            key=f"select_history_note_image_{image_state_key}",
+                            icon=":material/check:",
+                        ):
+                            with session_scope() as session:
+                                select_note_image_asset(session, history_asset.id)
+                            st.session_state[f"selected_note_image_{image_state_key}"] = (
+                                history_asset.id
+                            )
+                            st.rerun()
+                    confirm_image_delete = st.checkbox(
+                        "この画像を履歴から削除することを確認",
+                        key=f"confirm_delete_note_image_{image_state_key}",
+                    )
+                    if st.button(
+                        "選択した履歴画像を削除",
+                        key=f"delete_history_note_image_{image_state_key}",
+                        icon=":material/delete:",
+                        disabled=not confirm_image_delete,
+                    ):
+                        with session_scope() as session:
+                            deleted = delete_note_image_asset(session, history_asset.id)
+                        if deleted:
+                            if selected_asset_id == history_asset.id:
+                                st.session_state.pop(
+                                    f"selected_note_image_{image_state_key}", None
+                                )
+                            st.toast("画像を履歴から削除しました。")
+                            st.rerun()
 
     selected_products = [product for product in products if product.id in draft["product_ids"]]
     verified_dates = [
@@ -565,6 +898,16 @@ if drafts:
                 compliance_report=report.to_dict(),
                 info_verified_at=info_verified_at if isinstance(info_verified_at, date) else None,
             )
+            if str(draft["channel"]) == "note":
+                set_setting(
+                    session,
+                    f"content_seo_{content.id}",
+                    {
+                        "seo_title": str(st.session_state.get(seo_title_key, "")),
+                        "summary": str(st.session_state.get(seo_summary_key, "")),
+                        "hashtags": str(st.session_state.get(seo_hashtags_key, "")),
+                    },
+                )
         st.success(f"投稿ID {content.id} として確認待ちに保存しました。自動投稿は行いません。")
         st.session_state.generated_variations = []
         st.rerun()
