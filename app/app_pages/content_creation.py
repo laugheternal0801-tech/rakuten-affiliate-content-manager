@@ -346,6 +346,10 @@ if generated:
                     if comparison_mode
                     else settings.anthropic_api_timeout_seconds
                 ),
+                note_format_playbook_url=str(settings.note_format_playbook_url),
+                note_format_playbook_timeout_seconds=(
+                    settings.note_format_playbook_timeout_seconds
+                ),
             )
             spinner_message = (
                 "Claudeがnote記事を作成しています（最大2分ほどかかる場合があります）…"

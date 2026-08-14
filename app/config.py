@@ -31,6 +31,14 @@ class Settings(BaseSettings):
     anthropic_api_timeout_seconds: float = Field(default=120.0, ge=5, le=180)
     openai_api_key: str = ""
     openai_image_timeout_seconds: float = Field(default=150.0, ge=10, le=300)
+    note_format_playbook_url: HttpUrl = Field(
+        default=HttpUrl(
+            "https://raw.githubusercontent.com/"
+            "laugheternal0801-tech/rakuten-affiliate-content-manager/"
+            "note-format-data/data/note_format_playbook.json"
+        )
+    )
+    note_format_playbook_timeout_seconds: float = Field(default=3.0, ge=1, le=10)
     llm_provider: str = "anthropic"
     llm_api_key: str = ""
     database_url: str = f"sqlite:///{(PROJECT_ROOT / 'data' / 'app.db').as_posix()}"

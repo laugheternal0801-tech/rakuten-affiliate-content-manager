@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "name": "note公式・今日の注目記事",
+      "url": "https://note.com/notemagazine/m/mf2e92ffd6658/rss"
+    }
+  ],
+  "max_articles_per_run": 30,
+  "tracking_days": 10,
+  "request_delay_seconds": 0.8
+}
