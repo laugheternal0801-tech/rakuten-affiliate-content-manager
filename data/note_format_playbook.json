@@ -1,17 +1,17 @@
 {
-  "confidence": "medium",
+  "confidence": "high",
   "method": "public_like_growth_and_structure_only",
   "recommendations": {
     "h2_count": 4,
     "h3_count": 0,
     "intro_chars": 320,
     "list_count": 0,
-    "paragraph_chars": 68,
+    "paragraph_chars": 74,
     "separator_count": 0,
-    "title_chars": 24
+    "title_chars": 30
   },
-  "sample_size": 9,
+  "sample_size": 20,
   "status": "active",
-  "updated_at": "2026-08-14T02:32:25.164093Z",
+  "updated_at": "2026-08-15T02:54:01.493418Z",
   "version": 1
 }
