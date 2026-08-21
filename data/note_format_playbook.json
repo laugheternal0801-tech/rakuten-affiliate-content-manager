@@ -6,12 +6,12 @@
     "h3_count": 0,
     "intro_chars": 320,
     "list_count": 0,
-    "paragraph_chars": 62,
+    "paragraph_chars": 66,
     "separator_count": 0,
-    "title_chars": 24
+    "title_chars": 29
   },
   "sample_size": 20,
   "status": "active",
-  "updated_at": "2026-08-20T19:50:28.957837Z",
+  "updated_at": "2026-08-21T19:35:02.661265Z",
   "version": 1
 }
