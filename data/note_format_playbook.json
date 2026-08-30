@@ -4,14 +4,14 @@
   "recommendations": {
     "h2_count": 4,
     "h3_count": 0,
-    "intro_chars": 219,
+    "intro_chars": 320,
     "list_count": 0,
     "paragraph_chars": 68,
     "separator_count": 0,
-    "title_chars": 25
+    "title_chars": 23
   },
   "sample_size": 20,
   "status": "active",
-  "updated_at": "2026-08-29T18:23:46.258350Z",
+  "updated_at": "2026-08-30T18:23:39.302358Z",
   "version": 1
 }
