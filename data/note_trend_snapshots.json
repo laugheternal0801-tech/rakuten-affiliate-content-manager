@@ -78,6 +78,25 @@
           "likes": 438,
           "observed_at": "2026-08-31T18:24:00.089013Z",
           "published_at": "2026-08-26T17:00:00.000+09:00"
+        },
+        {
+          "features": {
+            "blockquote_count": 0,
+            "body_chars": 3288,
+            "h2_count": 8,
+            "h3_count": 0,
+            "image_count": 5,
+            "intro_chars": 125,
+            "list_count": 1,
+            "list_item_count": 4,
+            "median_paragraph_chars": 60,
+            "paragraph_count": 45,
+            "separator_count": 1,
+            "title_chars": 58
+          },
+          "likes": 453,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
+          "published_at": "2026-08-26T17:00:00.000+09:00"
         }
       ],
       "published_at": "2026-08-26T17:00:00.000+09:00",
@@ -593,6 +612,25 @@
           "likes": 139,
           "observed_at": "2026-08-31T18:24:00.089013Z",
           "published_at": "2026-08-22T19:58:20.000+09:00"
+        },
+        {
+          "features": {
+            "blockquote_count": 0,
+            "body_chars": 2173,
+            "h2_count": 4,
+            "h3_count": 3,
+            "image_count": 4,
+            "intro_chars": 124,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 83,
+            "paragraph_count": 20,
+            "separator_count": 0,
+            "title_chars": 51
+          },
+          "likes": 141,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
+          "published_at": "2026-08-22T19:58:20.000+09:00"
         }
       ],
       "published_at": "2026-08-22T19:58:20.000+09:00",
@@ -695,6 +733,25 @@
           "likes": 186,
           "observed_at": "2026-08-31T18:24:00.089013Z",
           "published_at": "2026-08-24T22:26:55.000+09:00"
+        },
+        {
+          "features": {
+            "blockquote_count": 0,
+            "body_chars": 1840,
+            "h2_count": 0,
+            "h3_count": 0,
+            "image_count": 42,
+            "intro_chars": 1840,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 36,
+            "paragraph_count": 14,
+            "separator_count": 4,
+            "title_chars": 20
+          },
+          "likes": 187,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
+          "published_at": "2026-08-24T22:26:55.000+09:00"
         }
       ],
       "published_at": "2026-08-24T22:26:55.000+09:00",
@@ -796,6 +853,25 @@
           },
           "likes": 152,
           "observed_at": "2026-08-31T18:24:00.089013Z",
+          "published_at": "2026-08-26T18:17:32.000+09:00"
+        },
+        {
+          "features": {
+            "blockquote_count": 0,
+            "body_chars": 161,
+            "h2_count": 0,
+            "h3_count": 0,
+            "image_count": 2,
+            "intro_chars": 161,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 0,
+            "paragraph_count": 0,
+            "separator_count": 0,
+            "title_chars": 23
+          },
+          "likes": 155,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
           "published_at": "2026-08-26T18:17:32.000+09:00"
         }
       ],
@@ -2126,6 +2202,25 @@
           "likes": 40,
           "observed_at": "2026-08-25T19:49:56.030580Z",
           "published_at": "2026-08-23T14:06:03.000+09:00"
+        },
+        {
+          "features": {
+            "blockquote_count": 16,
+            "body_chars": 7201,
+            "h2_count": 2,
+            "h3_count": 5,
+            "image_count": 5,
+            "intro_chars": 784,
+            "list_count": 1,
+            "list_item_count": 7,
+            "median_paragraph_chars": 73,
+            "paragraph_count": 76,
+            "separator_count": 0,
+            "title_chars": 24
+          },
+          "likes": 97,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
+          "published_at": "2026-08-23T14:06:03.000+09:00"
         }
       ],
       "published_at": "2026-08-23T14:06:03.000+09:00",
@@ -2182,6 +2277,32 @@
       ],
       "published_at": "2026-08-25T20:07:38.000+09:00",
       "url_hash": "45496c0d58b39d68"
+    },
+    "https://note.com/aoyamaan_h1/n/n39edb8d47bc5": {
+      "first_seen": "2026-09-01T18:31:58.020695Z",
+      "observations": [
+        {
+          "features": {
+            "blockquote_count": 2,
+            "body_chars": 3941,
+            "h2_count": 8,
+            "h3_count": 6,
+            "image_count": 36,
+            "intro_chars": 305,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 68,
+            "paragraph_count": 36,
+            "separator_count": 0,
+            "title_chars": 7
+          },
+          "likes": 66,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
+          "published_at": "2026-08-26T23:48:13.000+09:00"
+        }
+      ],
+      "published_at": "2026-08-26T23:48:13.000+09:00",
+      "url_hash": "f557527ca7d2e577"
     },
     "https://note.com/aoyamaan_h1/n/n8289877ec316": {
       "first_seen": "2026-08-12T06:53:36.979918Z",
@@ -2970,6 +3091,25 @@
           "likes": 136,
           "observed_at": "2026-08-31T18:24:00.089013Z",
           "published_at": "2026-08-20T17:26:48.000+09:00"
+        },
+        {
+          "features": {
+            "blockquote_count": 0,
+            "body_chars": 164,
+            "h2_count": 0,
+            "h3_count": 0,
+            "image_count": 6,
+            "intro_chars": 164,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 0,
+            "paragraph_count": 0,
+            "separator_count": 0,
+            "title_chars": 7
+          },
+          "likes": 203,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
+          "published_at": "2026-08-20T17:26:48.000+09:00"
         }
       ],
       "published_at": "2026-08-20T17:26:48.000+09:00",
@@ -3038,6 +3178,32 @@
       ],
       "published_at": "2026-08-20T17:01:37.000+09:00",
       "url_hash": "be28ef176124d6ed"
+    },
+    "https://note.com/brainy_ferret586/n/n8133536893ea": {
+      "first_seen": "2026-09-01T18:31:58.020695Z",
+      "observations": [
+        {
+          "features": {
+            "blockquote_count": 0,
+            "body_chars": 3051,
+            "h2_count": 5,
+            "h3_count": 0,
+            "image_count": 85,
+            "intro_chars": 100,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 45,
+            "paragraph_count": 63,
+            "separator_count": 5,
+            "title_chars": 22
+          },
+          "likes": 108,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
+          "published_at": "2026-08-31T17:58:33.000+09:00"
+        }
+      ],
+      "published_at": "2026-08-31T17:58:33.000+09:00",
+      "url_hash": "a3b64334d8eb83f6"
     },
     "https://note.com/bsh_84r/n/n0b16c8472934": {
       "first_seen": "2026-08-18T19:41:14.233768Z",
@@ -3735,6 +3901,25 @@
           "likes": 825,
           "observed_at": "2026-08-31T18:24:00.089013Z",
           "published_at": "2026-08-28T11:32:38.000+09:00"
+        },
+        {
+          "features": {
+            "blockquote_count": 2,
+            "body_chars": 5840,
+            "h2_count": 3,
+            "h3_count": 3,
+            "image_count": 3,
+            "intro_chars": 1770,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 78,
+            "paragraph_count": 44,
+            "separator_count": 0,
+            "title_chars": 45
+          },
+          "likes": 876,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
+          "published_at": "2026-08-28T11:32:38.000+09:00"
         }
       ],
       "published_at": "2026-08-28T11:32:38.000+09:00",
@@ -3934,6 +4119,25 @@
           "likes": 61,
           "observed_at": "2026-08-31T18:24:00.089013Z",
           "published_at": "2026-08-30T21:34:19.000+09:00"
+        },
+        {
+          "features": {
+            "blockquote_count": 0,
+            "body_chars": 2299,
+            "h2_count": 8,
+            "h3_count": 0,
+            "image_count": 0,
+            "intro_chars": 0,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 56,
+            "paragraph_count": 38,
+            "separator_count": 6,
+            "title_chars": 36
+          },
+          "likes": 109,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
+          "published_at": "2026-08-30T21:34:19.000+09:00"
         }
       ],
       "published_at": "2026-08-30T21:34:19.000+09:00",
@@ -4095,6 +4299,25 @@
           "likes": 339,
           "observed_at": "2026-08-31T18:24:00.089013Z",
           "published_at": "2026-08-27T21:07:49.000+09:00"
+        },
+        {
+          "features": {
+            "blockquote_count": 1,
+            "body_chars": 7375,
+            "h2_count": 3,
+            "h3_count": 10,
+            "image_count": 8,
+            "intro_chars": 128,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 92,
+            "paragraph_count": 59,
+            "separator_count": 0,
+            "title_chars": 23
+          },
+          "likes": 348,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
+          "published_at": "2026-08-27T21:07:49.000+09:00"
         }
       ],
       "published_at": "2026-08-27T21:07:49.000+09:00",
@@ -4120,6 +4343,25 @@
           },
           "likes": 82,
           "observed_at": "2026-08-31T18:24:00.089013Z",
+          "published_at": "2026-08-30T15:23:26.000+09:00"
+        },
+        {
+          "features": {
+            "blockquote_count": 2,
+            "body_chars": 3126,
+            "h2_count": 2,
+            "h3_count": 0,
+            "image_count": 10,
+            "intro_chars": 1097,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 82,
+            "paragraph_count": 20,
+            "separator_count": 0,
+            "title_chars": 34
+          },
+          "likes": 145,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
           "published_at": "2026-08-30T15:23:26.000+09:00"
         }
       ],
@@ -4865,6 +5107,32 @@
       "published_at": "2026-08-18T10:00:00.000+09:00",
       "url_hash": "fa2db1772aeec904"
     },
+    "https://note.com/hoshinonanako/n/n3f7bf53111ad": {
+      "first_seen": "2026-09-01T18:31:58.020695Z",
+      "observations": [
+        {
+          "features": {
+            "blockquote_count": 1,
+            "body_chars": 1410,
+            "h2_count": 0,
+            "h3_count": 3,
+            "image_count": 8,
+            "intro_chars": 216,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 72,
+            "paragraph_count": 17,
+            "separator_count": 0,
+            "title_chars": 23
+          },
+          "likes": 85,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
+          "published_at": "2026-09-01T06:00:00.000+09:00"
+        }
+      ],
+      "published_at": "2026-09-01T06:00:00.000+09:00",
+      "url_hash": "a2f848d3cac46c9b"
+    },
     "https://note.com/hot_sorrel149/n/n1561d5279396": {
       "first_seen": "2026-08-31T18:24:00.089013Z",
       "observations": [
@@ -4885,6 +5153,25 @@
           },
           "likes": 63,
           "observed_at": "2026-08-31T18:24:00.089013Z",
+          "published_at": "2026-07-30T14:14:40.000+09:00"
+        },
+        {
+          "features": {
+            "blockquote_count": 0,
+            "body_chars": 2080,
+            "h2_count": 0,
+            "h3_count": 0,
+            "image_count": 6,
+            "intro_chars": 2080,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 140,
+            "paragraph_count": 14,
+            "separator_count": 0,
+            "title_chars": 28
+          },
+          "likes": 106,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
           "published_at": "2026-07-30T14:14:40.000+09:00"
         }
       ],
@@ -6103,6 +6390,25 @@
           "likes": 142,
           "observed_at": "2026-08-31T18:24:00.089013Z",
           "published_at": "2026-08-28T22:08:33.000+09:00"
+        },
+        {
+          "features": {
+            "blockquote_count": 0,
+            "body_chars": 1488,
+            "h2_count": 0,
+            "h3_count": 0,
+            "image_count": 8,
+            "intro_chars": 1488,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 84,
+            "paragraph_count": 15,
+            "separator_count": 0,
+            "title_chars": 23
+          },
+          "likes": 221,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
+          "published_at": "2026-08-28T22:08:33.000+09:00"
         }
       ],
       "published_at": "2026-08-28T22:08:33.000+09:00",
@@ -6171,6 +6477,32 @@
       ],
       "published_at": "2026-08-13T19:41:39.000+09:00",
       "url_hash": "b702ce6ab2dd413f"
+    },
+    "https://note.com/kyo_akane/n/nf0ec1d781b2a": {
+      "first_seen": "2026-09-01T18:31:58.020695Z",
+      "observations": [
+        {
+          "features": {
+            "blockquote_count": 0,
+            "body_chars": 2945,
+            "h2_count": 2,
+            "h3_count": 8,
+            "image_count": 30,
+            "intro_chars": 107,
+            "list_count": 1,
+            "list_item_count": 5,
+            "median_paragraph_chars": 66,
+            "paragraph_count": 36,
+            "separator_count": 0,
+            "title_chars": 21
+          },
+          "likes": 77,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
+          "published_at": "2026-08-30T14:39:58.000+09:00"
+        }
+      ],
+      "published_at": "2026-08-30T14:39:58.000+09:00",
+      "url_hash": "1fc3e9d0e243b9f5"
     },
     "https://note.com/l0stcorner/n/nb77c45212d96": {
       "first_seen": "2026-08-24T19:48:30.934583Z",
@@ -8005,6 +8337,25 @@
           "likes": 58,
           "observed_at": "2026-08-31T18:24:00.089013Z",
           "published_at": "2026-08-30T21:31:15.000+09:00"
+        },
+        {
+          "features": {
+            "blockquote_count": 0,
+            "body_chars": 1418,
+            "h2_count": 5,
+            "h3_count": 0,
+            "image_count": 7,
+            "intro_chars": 179,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 71,
+            "paragraph_count": 13,
+            "separator_count": 0,
+            "title_chars": 41
+          },
+          "likes": 123,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
+          "published_at": "2026-08-30T21:31:15.000+09:00"
         }
       ],
       "published_at": "2026-08-30T21:31:15.000+09:00",
@@ -8623,6 +8974,25 @@
           "likes": 49,
           "observed_at": "2026-08-31T18:24:00.089013Z",
           "published_at": "2026-08-29T16:11:53.000+09:00"
+        },
+        {
+          "features": {
+            "blockquote_count": 1,
+            "body_chars": 1683,
+            "h2_count": 0,
+            "h3_count": 11,
+            "image_count": 4,
+            "intro_chars": 207,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 80,
+            "paragraph_count": 17,
+            "separator_count": 0,
+            "title_chars": 39
+          },
+          "likes": 99,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
+          "published_at": "2026-08-29T16:11:53.000+09:00"
         }
       ],
       "published_at": "2026-08-29T16:11:53.000+09:00",
@@ -8736,6 +9106,32 @@
       ],
       "published_at": "2026-08-12T08:00:00.000+09:00",
       "url_hash": "8626b6a974f9ff96"
+    },
+    "https://note.com/pinkni_mau/n/naca544e4f177": {
+      "first_seen": "2026-09-01T18:31:58.020695Z",
+      "observations": [
+        {
+          "features": {
+            "blockquote_count": 0,
+            "body_chars": 5629,
+            "h2_count": 9,
+            "h3_count": 0,
+            "image_count": 0,
+            "intro_chars": 0,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 28,
+            "paragraph_count": 162,
+            "separator_count": 7,
+            "title_chars": 64
+          },
+          "likes": 74,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
+          "published_at": "2026-08-22T09:39:13.000+09:00"
+        }
+      ],
+      "published_at": "2026-08-22T09:39:13.000+09:00",
+      "url_hash": "4622839aa35f5a79"
     },
     "https://note.com/pinto_marugoto/n/na8447716d577": {
       "first_seen": "2026-08-24T19:48:30.934583Z",
@@ -9367,6 +9763,32 @@
       "published_at": "2026-08-11T15:58:09.000+09:00",
       "url_hash": "dc1b7a4033e00d53"
     },
+    "https://note.com/salicylic_acid3/n/n6c2206a162cc": {
+      "first_seen": "2026-09-01T18:31:58.020695Z",
+      "observations": [
+        {
+          "features": {
+            "blockquote_count": 1,
+            "body_chars": 3459,
+            "h2_count": 7,
+            "h3_count": 5,
+            "image_count": 5,
+            "intro_chars": 132,
+            "list_count": 1,
+            "list_item_count": 5,
+            "median_paragraph_chars": 63,
+            "paragraph_count": 23,
+            "separator_count": 0,
+            "title_chars": 35
+          },
+          "likes": 160,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
+          "published_at": "2026-08-31T02:18:52.000+09:00"
+        }
+      ],
+      "published_at": "2026-08-31T02:18:52.000+09:00",
+      "url_hash": "db1968e46649cbc8"
+    },
     "https://note.com/sanae_shimazu/n/n9f2ddc18f030": {
       "first_seen": "2026-08-31T18:24:00.089013Z",
       "observations": [
@@ -9387,6 +9809,25 @@
           },
           "likes": 657,
           "observed_at": "2026-08-31T18:24:00.089013Z",
+          "published_at": "2026-08-29T19:02:40.000+09:00"
+        },
+        {
+          "features": {
+            "blockquote_count": 0,
+            "body_chars": 3505,
+            "h2_count": 0,
+            "h3_count": 0,
+            "image_count": 2,
+            "intro_chars": 3505,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 1546,
+            "paragraph_count": 3,
+            "separator_count": 0,
+            "title_chars": 27
+          },
+          "likes": 729,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
           "published_at": "2026-08-29T19:02:40.000+09:00"
         }
       ],
@@ -9909,6 +10350,25 @@
           "likes": 84,
           "observed_at": "2026-08-31T18:24:00.089013Z",
           "published_at": "2026-05-25T11:08:54.000+09:00"
+        },
+        {
+          "features": {
+            "blockquote_count": 3,
+            "body_chars": 5037,
+            "h2_count": 14,
+            "h3_count": 0,
+            "image_count": 11,
+            "intro_chars": 204,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 223,
+            "paragraph_count": 22,
+            "separator_count": 0,
+            "title_chars": 37
+          },
+          "likes": 140,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
+          "published_at": "2026-05-25T11:08:54.000+09:00"
         }
       ],
       "published_at": "2026-05-25T11:08:54.000+09:00",
@@ -9934,6 +10394,25 @@
           },
           "likes": 272,
           "observed_at": "2026-08-31T18:24:00.089013Z",
+          "published_at": "2026-08-30T09:39:11.000+09:00"
+        },
+        {
+          "features": {
+            "blockquote_count": 0,
+            "body_chars": 923,
+            "h2_count": 0,
+            "h3_count": 0,
+            "image_count": 1,
+            "intro_chars": 923,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 49,
+            "paragraph_count": 17,
+            "separator_count": 0,
+            "title_chars": 13
+          },
+          "likes": 294,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
           "published_at": "2026-08-30T09:39:11.000+09:00"
         }
       ],
@@ -10152,6 +10631,58 @@
       ],
       "published_at": "2026-08-23T22:25:52.000+09:00",
       "url_hash": "fdafcb73d8287e78"
+    },
+    "https://note.com/si__on/n/n9d0519563549": {
+      "first_seen": "2026-09-01T18:31:58.020695Z",
+      "observations": [
+        {
+          "features": {
+            "blockquote_count": 0,
+            "body_chars": 1255,
+            "h2_count": 0,
+            "h3_count": 0,
+            "image_count": 11,
+            "intro_chars": 1255,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 56,
+            "paragraph_count": 18,
+            "separator_count": 0,
+            "title_chars": 18
+          },
+          "likes": 87,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
+          "published_at": "2026-08-30T16:08:00.000+09:00"
+        }
+      ],
+      "published_at": "2026-08-30T16:08:00.000+09:00",
+      "url_hash": "e540535b3356ea06"
+    },
+    "https://note.com/simple_mania/n/n2c577028d96f": {
+      "first_seen": "2026-09-01T18:31:58.020695Z",
+      "observations": [
+        {
+          "features": {
+            "blockquote_count": 3,
+            "body_chars": 1232,
+            "h2_count": 0,
+            "h3_count": 0,
+            "image_count": 15,
+            "intro_chars": 1232,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 20,
+            "paragraph_count": 40,
+            "separator_count": 0,
+            "title_chars": 28
+          },
+          "likes": 98,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
+          "published_at": "2026-08-30T19:02:39.000+09:00"
+        }
+      ],
+      "published_at": "2026-08-30T19:02:39.000+09:00",
+      "url_hash": "711dc6239d5a00e4"
     },
     "https://note.com/smjintermusic/n/nf461086679fa": {
       "first_seen": "2026-08-28T01:47:08.254610Z",
@@ -10457,6 +10988,25 @@
           },
           "likes": 89,
           "observed_at": "2026-08-31T18:24:00.089013Z",
+          "published_at": "2026-08-31T07:00:00.000+09:00"
+        },
+        {
+          "features": {
+            "blockquote_count": 0,
+            "body_chars": 11230,
+            "h2_count": 5,
+            "h3_count": 0,
+            "image_count": 15,
+            "intro_chars": 126,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 110,
+            "paragraph_count": 96,
+            "separator_count": 0,
+            "title_chars": 23
+          },
+          "likes": 176,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
           "published_at": "2026-08-31T07:00:00.000+09:00"
         }
       ],
@@ -11176,6 +11726,32 @@
       "published_at": "2026-08-19T18:45:54.000+09:00",
       "url_hash": "44a662baa436d1b9"
     },
+    "https://note.com/toto_books/n/nd022cb82ca03": {
+      "first_seen": "2026-09-01T18:31:58.020695Z",
+      "observations": [
+        {
+          "features": {
+            "blockquote_count": 4,
+            "body_chars": 9246,
+            "h2_count": 1,
+            "h3_count": 11,
+            "image_count": 10,
+            "intro_chars": 602,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 74,
+            "paragraph_count": 96,
+            "separator_count": 2,
+            "title_chars": 28
+          },
+          "likes": 319,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
+          "published_at": "2026-08-30T20:52:21.000+09:00"
+        }
+      ],
+      "published_at": "2026-08-30T20:52:21.000+09:00",
+      "url_hash": "d360a64fbf17e810"
+    },
     "https://note.com/toyu_vlog/n/n787f811fdca7": {
       "first_seen": "2026-08-20T19:50:28.957837Z",
       "observations": [
@@ -11507,6 +12083,25 @@
           "likes": 45,
           "observed_at": "2026-08-31T18:24:00.089013Z",
           "published_at": "2026-08-30T21:58:15.000+09:00"
+        },
+        {
+          "features": {
+            "blockquote_count": 0,
+            "body_chars": 3912,
+            "h2_count": 9,
+            "h3_count": 4,
+            "image_count": 8,
+            "intro_chars": 301,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 42,
+            "paragraph_count": 68,
+            "separator_count": 0,
+            "title_chars": 34
+          },
+          "likes": 126,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
+          "published_at": "2026-08-30T21:58:15.000+09:00"
         }
       ],
       "published_at": "2026-08-30T21:58:15.000+09:00",
@@ -11641,6 +12236,25 @@
           },
           "likes": 711,
           "observed_at": "2026-08-31T18:24:00.089013Z",
+          "published_at": "2026-08-28T11:53:43.000+09:00"
+        },
+        {
+          "features": {
+            "blockquote_count": 0,
+            "body_chars": 2718,
+            "h2_count": 0,
+            "h3_count": 0,
+            "image_count": 0,
+            "intro_chars": 2718,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 37,
+            "paragraph_count": 58,
+            "separator_count": 0,
+            "title_chars": 23
+          },
+          "likes": 776,
+          "observed_at": "2026-09-01T18:31:58.020695Z",
           "published_at": "2026-08-28T11:53:43.000+09:00"
         }
       ],
@@ -12254,6 +12868,6 @@
     "successful": 29
   },
   "source": "note公式『今日の注目記事』RSS",
-  "updated_at": "2026-08-31T18:24:00.089013Z",
+  "updated_at": "2026-09-01T18:31:58.020695Z",
   "version": 1
 }
