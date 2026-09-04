@@ -7,11 +7,11 @@
     "intro_chars": 282,
     "list_count": 0,
     "paragraph_chars": 73,
-    "separator_count": 0,
+    "separator_count": 1,
     "title_chars": 25
   },
   "sample_size": 20,
   "status": "active",
-  "updated_at": "2026-09-03T18:32:40.964463Z",
+  "updated_at": "2026-09-04T18:29:27.135519Z",
   "version": 1
 }
