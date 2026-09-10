@@ -96,7 +96,9 @@ def find_article_section(body: str, target: str) -> ArticleSection:
 
 
 def replace_article_section(body: str, section: ArticleSection, replacement: str) -> str:
-    return f"{body[:section.start]}{replacement.strip()}\n\n{body[section.end:].lstrip()}".rstrip()
+    return (
+        f"{body[: section.start]}{replacement.strip()}\n\n{body[section.end :].lstrip()}".rstrip()
+    )
 
 
 class ClaudeArticleRevisionService:

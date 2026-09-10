@@ -15,10 +15,11 @@ test("GET / returns the Japanese app overview with status 200", async () => {
 
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type"), /text\/html/);
-  assert.match(html, /Note to Automation/);
-  assert.match(html, /個人利用のPinterest投稿支援アプリ/);
+  assert.match(html, /AI Operating System/);
+  assert.match(html, /個人利用のAI制作・SNS投稿支援アプリ/);
   assert.match(html, /一般ユーザー向けに提供するサービスではありません/);
   assert.match(html, /href="\/privacy"/);
+  assert.match(html, /href="\/terms"/);
   assert.match(html, /viewport/);
 });
 
@@ -31,7 +32,17 @@ for (const path of ["/privacy", "/privacy.html"]) {
     assert.match(html, /プライバシーポリシー/);
     assert.match(html, /取得する情報/);
     assert.match(html, /第三者提供の有無/);
-    assert.match(html, /2026年8月5日/);
+    assert.match(html, /2026年8月30日/);
+  });
+}
+
+for (const path of ["/terms", "/terms.html"]) {
+  test(`GET ${path} returns terms with status 200`, async () => {
+    const response = await fetchPath(path);
+    const html = await response.text();
+    assert.equal(response.status, 200);
+    assert.match(html, /利用規約/);
+    assert.match(html, /投稿前の確認/);
   });
 }
 
@@ -42,7 +53,7 @@ test("both privacy routes return identical content", async () => {
 });
 
 test("HEAD routes return 200 without a body", async () => {
-  for (const path of ["/", "/privacy", "/privacy.html"]) {
+  for (const path of ["/", "/privacy", "/privacy.html", "/terms", "/terms.html"]) {
     const response = await fetchPath(path, { method: "HEAD" });
     assert.equal(response.status, 200);
     assert.equal(await response.text(), "");

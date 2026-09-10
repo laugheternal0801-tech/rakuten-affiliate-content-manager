@@ -18,6 +18,7 @@ from app.repositories import (
     select_note_image_asset,
     set_setting,
 )
+from app.research_catalog.repositories import link_brief_to_content
 from app.services.article_revision import REVISION_TARGETS, ClaudeArticleRevisionService
 from app.services.compliance import check_content
 from app.services.content_generation import (
@@ -58,16 +59,31 @@ with session_scope() as session:
         },
     )
 
-if not products:
-    st.info("保存商品がありません。先に商品検索画面で商品を保存してください。")
-    st.stop()
-
 settings = get_settings()
 st.session_state.setdefault("generated_variations", [])
 st.session_state.setdefault("pending_article_revisions", {})
 
+research_handoff = st.session_state.pop("research_brief_handoff", None)
+if isinstance(research_handoff, dict):
+    st.session_state["active_research_brief_handoff"] = research_handoff
+    st.session_state["creation_channel"] = str(research_handoff.get("channel", "note"))
+    st.session_state.pop("active_clone_request", None)
+active_research_handoff = st.session_state.get("active_research_brief_handoff")
+if isinstance(active_research_handoff, dict):
+    st.info(
+        f"調査企画のブリーフ {active_research_handoff.get('brief_code', '')} を引き継ぎました。"
+        "生成前に商品・事実・未確認事項を確認してください。",
+        icon=":material/description:",
+    )
+    with st.expander("引き継いだ記事作成用ブリーフを見る"):
+        st.code(
+            str(active_research_handoff.get("markdown", "")),
+            language="markdown",
+            wrap_lines=True,
+        )
+
 clone_request = st.session_state.pop("clone_content_request", None)
-if isinstance(clone_request, dict):
+if isinstance(clone_request, dict) and not isinstance(active_research_handoff, dict):
     st.session_state["active_clone_request"] = clone_request
     st.session_state["creation_channel"] = str(clone_request.get("channel", "note"))
 active_clone = st.session_state.get("active_clone_request")
@@ -77,6 +93,13 @@ if isinstance(active_clone, dict):
         "商品やテーマを入れ替えて、新しい記事として作成できます。",
         icon=":material/content_copy:",
     )
+
+if not products:
+    st.info(
+        "既存の制作機能で使う保存商品がありません。商品検索で商品を保存するか、"
+        "商品・調査管理で既存の制作商品とリンクしてください。"
+    )
+    st.stop()
 
 if settings.llm_configured:
     st.badge(
@@ -99,26 +122,36 @@ comparison_mode = selected_channel == "note"
 if comparison_mode:
     article_format = "comparison_review"
     article_genre = str(
-        active_clone.get("theme", "")
-        if isinstance(active_clone, dict)
-        else comparison_brief.get("genre", "")
+        active_research_handoff.get("theme", "")
+        if isinstance(active_research_handoff, dict)
+        else (
+            active_clone.get("theme", "")
+            if isinstance(active_clone, dict)
+            else comparison_brief.get("genre", "")
+        )
     )
     main_keyword = str(
-        active_clone.get("main_keyword", active_clone.get("theme", ""))
-        if isinstance(active_clone, dict)
-        else comparison_brief.get("main_keyword", "")
+        active_research_handoff.get("theme", "")
+        if isinstance(active_research_handoff, dict)
+        else (
+            active_clone.get("main_keyword", active_clone.get("theme", ""))
+            if isinstance(active_clone, dict)
+            else comparison_brief.get("main_keyword", "")
+        )
     )
     eligible_products = [product for product in products if not product.is_sample]
     eligible_ids = {product.id for product in eligible_products}
     requested_default_ids = (
-        active_clone.get("product_ids", [])
-        if isinstance(active_clone, dict)
-        else comparison_brief.get("product_ids", [])
+        active_research_handoff.get("product_ids", [])
+        if isinstance(active_research_handoff, dict)
+        else (
+            active_clone.get("product_ids", [])
+            if isinstance(active_clone, dict)
+            else comparison_brief.get("product_ids", [])
+        )
     )
     default_comparison_ids = [
-        int(product_id)
-        for product_id in requested_default_ids
-        if int(product_id) in eligible_ids
+        int(product_id) for product_id in requested_default_ids if int(product_id) in eligible_ids
     ]
     st.info(
         "note投稿では、商品・体験情報で保存した設定と専用プロンプトを使い、"
@@ -147,9 +180,13 @@ if comparison_mode:
             target_audience = st.text_area(
                 "想定読者（誰が何に困っているか）",
                 value=str(
-                    active_clone.get("target_audience", "")
-                    if isinstance(active_clone, dict)
-                    else comparison_brief.get("target_audience", "")
+                    active_research_handoff.get("target_audience", "")
+                    if isinstance(active_research_handoff, dict)
+                    else (
+                        active_clone.get("target_audience", "")
+                        if isinstance(active_clone, dict)
+                        else comparison_brief.get("target_audience", "")
+                    )
                 ),
                 placeholder="例：忙しい朝でも手軽に使える1台を選べずに困っている人",
                 height=90,
@@ -161,6 +198,11 @@ if comparison_mode:
             )
             custom_message = st.text_area(
                 "追加で入れたい条件（任意）",
+                value=(
+                    str(active_research_handoff.get("custom_message", ""))
+                    if isinstance(active_research_handoff, dict)
+                    else ""
+                ),
                 placeholder="例：お手入れ時間も比較したい",
                 help="公開してよい、事実確認済みの内容だけを入力してください。",
                 height=80,
@@ -219,25 +261,38 @@ else:
                 default=(
                     [
                         int(product_id)
-                        for product_id in active_clone.get("product_ids", [])
+                        for product_id in (
+                            active_research_handoff.get("product_ids", [])
+                            if isinstance(active_research_handoff, dict)
+                            else active_clone.get("product_ids", [])
+                        )
                         if int(product_id) in {product.id for product in products}
                     ]
-                    if isinstance(active_clone, dict)
+                    if isinstance(active_research_handoff, dict)
+                    or isinstance(active_clone, dict)
                     else []
                 ),
             )
             theme = st.text_input(
                 "投稿テーマ",
                 value=(
-                    str(active_clone.get("theme", ""))
-                    if isinstance(active_clone, dict)
-                    else ""
+                    str(active_research_handoff.get("theme", ""))
+                    if isinstance(active_research_handoff, dict)
+                    else (
+                        str(active_clone.get("theme", ""))
+                        if isinstance(active_clone, dict)
+                        else ""
+                    )
                 ),
                 placeholder="例：自宅で楽しむコーヒー選び",
             )
             target_audience = st.text_input(
                 "想定する読者",
-                value="商品選びで迷っている人",
+                value=(
+                    str(active_research_handoff.get("target_audience", ""))
+                    if isinstance(active_research_handoff, dict)
+                    else "商品選びで迷っている人"
+                ),
                 placeholder="例：忙しい朝でも手軽にコーヒーを楽しみたい人",
             )
             tone = str(
@@ -262,6 +317,11 @@ else:
             )
             custom_message = st.text_area(
                 "入れたい一言（任意）",
+                value=(
+                    str(active_research_handoff.get("custom_message", ""))
+                    if isinstance(active_research_handoff, dict)
+                    else ""
+                ),
                 placeholder="例：ギフト選びにも使える点を伝えたい",
                 help="公開してよい、事実確認済みの内容だけを入力してください。",
                 height=90,
@@ -396,11 +456,18 @@ if generated:
                     "target_length": int(target_length),
                     "requested_hashtag_count": int(hashtag_count),
                     "article_format": article_format,
+                    "research_brief_id": (
+                        int(active_research_handoff["brief_id"])
+                        if isinstance(active_research_handoff, dict)
+                        and active_research_handoff.get("brief_id") is not None
+                        else None
+                    ),
                     "generation_id": generation_id,
                 }
                 for output in outputs
             ]
             st.session_state.pop("active_clone_request", None)
+            st.session_state.pop("active_research_brief_handoff", None)
             if comparison_mode and create_image_together:
                 try:
                     image_generator = OpenAINoteImageGenerator(
@@ -736,9 +803,7 @@ if drafts:
             current_batch_id = st.session_state.get(
                 f"current_note_image_batch_{image_state_key}", image_state_key
             )
-            current_assets = [
-                asset for asset in image_assets if asset.batch_id == current_batch_id
-            ]
+            current_assets = [asset for asset in image_assets if asset.batch_id == current_batch_id]
             if current_assets:
                 st.markdown("**今回の候補**")
                 candidate_columns = st.columns(len(current_assets))
@@ -770,9 +835,7 @@ if drafts:
                     caption="note見出し画像｜1280×670px PNG",
                     width="stretch",
                 )
-                image_file_theme = re.sub(
-                    r"[^\w一-龥ぁ-んァ-ヴー-]", "_", image_result.theme
-                )[:40]
+                image_file_theme = re.sub(r"[^\w一-龥ぁ-んァ-ヴー-]", "_", image_result.theme)[:40]
                 st.download_button(
                     "アイキャッチ画像をPNG保存",
                     data=image_result.image_data,
@@ -792,8 +855,7 @@ if drafts:
                         format_func=lambda asset_id: next(
                             (
                                 f"#{asset.id}｜{asset.created_at:%Y/%m/%d %H:%M}｜"
-                                f"{asset.theme[:35]}"
-                                + ("｜選択中" if asset.is_selected else "")
+                                f"{asset.theme[:35]}" + ("｜選択中" if asset.is_selected else "")
                             )
                             for asset in image_assets
                             if asset.id == asset_id
@@ -830,9 +892,7 @@ if drafts:
                             deleted = delete_note_image_asset(session, history_asset.id)
                         if deleted:
                             if selected_asset_id == history_asset.id:
-                                st.session_state.pop(
-                                    f"selected_note_image_{image_state_key}", None
-                                )
+                                st.session_state.pop(f"selected_note_image_{image_state_key}", None)
                             st.toast("画像を履歴から削除しました。")
                             st.rerun()
 
@@ -911,6 +971,13 @@ if drafts:
                         "summary": str(st.session_state.get(seo_summary_key, "")),
                         "hashtags": str(st.session_state.get(seo_hashtags_key, "")),
                     },
+                )
+            if draft.get("research_brief_id") is not None:
+                link_brief_to_content(
+                    session,
+                    brief_id=int(draft["research_brief_id"]),
+                    content_id=content.id,
+                    channel=str(draft["channel"]),
                 )
         st.success(f"投稿ID {content.id} として確認待ちに保存しました。自動投稿は行いません。")
         st.session_state.generated_variations = []

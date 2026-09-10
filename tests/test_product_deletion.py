@@ -36,14 +36,20 @@ def test_delete_product_preserves_history_and_removes_private_notes() -> None:
         session.commit()
 
         assert session.get(Product, product_id) is None
-        assert session.scalar(
-            select(func.count(Experience.id)).where(Experience.product_id == product_id)
-        ) == 0
-        assert session.scalar(
-            select(func.count(ContentProduct.product_id)).where(
-                ContentProduct.product_id == product_id
+        assert (
+            session.scalar(
+                select(func.count(Experience.id)).where(Experience.product_id == product_id)
             )
-        ) == 0
+            == 0
+        )
+        assert (
+            session.scalar(
+                select(func.count(ContentProduct.product_id)).where(
+                    ContentProduct.product_id == product_id
+                )
+            )
+            == 0
+        )
         assert session.get(Content, content_id) is not None
         saved_performance = session.get(Performance, performance_id)
         assert saved_performance is not None

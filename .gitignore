@@ -9,11 +9,16 @@ node_modules/
 __pycache__/
 .pytest_cache/
 .test-tmp-*/
+.test-tmp/
+.review-test-temp-*/
+/tmp????????/
+.codex-test-temp/
 .ruff_cache/
 .mypy_cache/
 *.py[cod]
 data/*.db
 data/*.db-*
+data/*.pid
 exports/*
 !exports/.gitkeep
 backups/

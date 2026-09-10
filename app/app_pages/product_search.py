@@ -120,7 +120,7 @@ if results:
         selection_mode="multi-row",
         key="search_result_table",
     )
-    selected_rows = event.selection.rows
+    selected_rows = event.selection.rows  # type: ignore[attr-defined]
     with st.container(horizontal=True):
         if st.button(
             "選択した商品を一括保存",

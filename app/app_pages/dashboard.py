@@ -55,7 +55,7 @@ if performances:
     with right.container(border=True):
         st.subheader("商品別成果")
         product = (
-            perf_frame.groupby("商品", as_index=False)["成果報酬"].sum().nlargest(10, "成果報酬")
+            perf_frame.groupby("商品", as_index=False)[["成果報酬"]].sum().nlargest(10, "成果報酬")
         )
         st.bar_chart(product, x="商品", y="成果報酬", horizontal=True)
 else:

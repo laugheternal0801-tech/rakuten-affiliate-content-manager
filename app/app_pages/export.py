@@ -36,8 +36,11 @@ if st.button(
     disabled=not selected_ids or not theme.strip(),
 ):
     with session_scope() as session:
-        selected = [get_content(session, content_id) for content_id in selected_ids]
-        selected = [content for content in selected if content is not None]
+        selected = [
+            content
+            for content_id in selected_ids
+            if (content := get_content(session, content_id)) is not None
+        ]
         products_by_id = {
             product.id: product for content in selected for product in content.products
         }

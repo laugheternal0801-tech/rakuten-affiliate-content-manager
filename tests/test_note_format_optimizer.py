@@ -143,9 +143,7 @@ def test_update_job_obeys_robots_and_writes_warmup_files(tmp_path: Path) -> None
     config_path.write_text(
         json.dumps(
             {
-                "sources": [
-                    "https://note.com/notemagazine/m/mf2e92ffd6658/rss"
-                ],
+                "sources": ["https://note.com/notemagazine/m/mf2e92ffd6658/rss"],
                 "max_articles_per_run": 5,
                 "request_delay_seconds": 0.2,
             }

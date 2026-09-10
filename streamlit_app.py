@@ -53,13 +53,75 @@ with st.sidebar:
     st.caption("v0.1.0 · 最終確認は投稿者本人が行ってください")
 
 pages = {
-    "運用": [
+    "ホーム・商品": [
         st.Page(page_dir / "dashboard.py", title="ダッシュボード", icon=":material/dashboard:"),
         st.Page(page_dir / "product_search.py", title="商品検索", icon=":material/search:"),
         st.Page(page_dir / "products.py", title="商品・体験情報", icon=":material/inventory_2:"),
+    ],
+    "商品調査・企画": [
         st.Page(
-            page_dir / "content_creation.py", title="投稿文作成", icon=":material/edit_note:"
+            page_dir / "product_research.py",
+            title="商品・調査管理",
+            icon=":material/manage_search:",
         ),
+        st.Page(
+            page_dir / "research_plans.py",
+            title="比較・企画",
+            icon=":material/compare_arrows:",
+        ),
+    ],
+    "プラットフォームルーム": [
+        st.Page(page_dir / "note_room.py", title="noteルーム", icon=":material/article:"),
+        st.Page(
+            page_dir / "pinterest_room.py",
+            title="Pinterestルーム",
+            icon=":material/push_pin:",
+        ),
+        st.Page(page_dir / "x_room.py", title="Xルーム", icon=":material/alternate_email:"),
+        st.Page(
+            page_dir / "instagram_room.py",
+            title="Instagramルーム",
+            icon=":material/photo_camera:",
+        ),
+        st.Page(
+            page_dir / "rakuten_room.py",
+            title="楽天ROOMルーム",
+            icon=":material/storefront:",
+        ),
+    ],
+    "共通管理": [
+        st.Page(
+            page_dir / "operating_system.py",
+            title="AI意思決定",
+            icon=":material/account_tree:",
+        ),
+        st.Page(
+            page_dir / "opportunity_discovery.py",
+            title="市場機会の発見",
+            icon=":material/radar:",
+        ),
+        st.Page(
+            page_dir / "market_intelligence.py",
+            title="SNS市場調査",
+            icon=":material/travel_explore:",
+        ),
+        st.Page(
+            page_dir / "creative_production.py",
+            title="AI制作スタジオ",
+            icon=":material/movie_edit:",
+        ),
+        st.Page(
+            page_dir / "publishing_center.py",
+            title="公開・学習センター",
+            icon=":material/publish:",
+        ),
+        st.Page(
+            page_dir / "decision_learning.py",
+            title="意思決定・学習履歴",
+            icon=":material/query_stats:",
+        ),
+        st.Page(page_dir / "ai_council.py", title="AI会議", icon=":material/groups:"),
+        st.Page(page_dir / "content_creation.py", title="投稿文作成", icon=":material/edit_note:"),
         st.Page(page_dir / "content_management.py", title="投稿管理", icon=":material/fact_check:"),
     ],
     "分析・設定": [

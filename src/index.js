@@ -179,7 +179,7 @@ function layout({ title, description, body }) {
   <main class="shell">
     <article class="card">${body}</article>
     <footer>
-      <p>© 2026 Note to Automation — 個人利用のPinterest投稿支援アプリ</p>
+      <p>© 2026 AI Operating System — 個人利用のAI制作・SNS投稿支援アプリ</p>
     </footer>
   </main>
 </body>
@@ -187,29 +187,29 @@ function layout({ title, description, body }) {
 }
 
 const HOME_HTML = layout({
-  title: "Note to Automation | アプリ概要",
-  description: "個人利用のPinterest投稿支援アプリ Note to Automation の概要",
+  title: "AI Operating System | アプリ概要",
+  description: "AIによる調査・制作と、本人承認によるSNS投稿を支援する個人用アプリの概要",
   body: `
     <div class="brand"><span class="brand-dot" aria-hidden="true"></span>Application overview</div>
-    <h1>Note to<br>Automation</h1>
+    <h1>AI Operating<br>System</h1>
     <p class="lead">
-      note記事からPinterest向けの画像と投稿文を作成する、
-      個人利用のPinterest投稿支援アプリです。
+      複数のAIによる調査・企画・コンテンツ制作と、TikTokなど各SNSへの投稿を支援する
+      個人利用のアプリです。公開前には必ず利用者本人が内容と投稿先を確認します。
     </p>
     <span class="pill">Personal use only</span>
 
     <div class="features" aria-label="アプリの特徴">
       <section class="feature">
-        <h3>投稿素材を作成</h3>
-        <p>入力した記事URL、タイトル、要約をもとに、Pinterest向け画像と投稿文を作成します。</p>
+        <h3>調査・制作</h3>
+        <p>複数のAIを使い、根拠を確認しながら企画、文章、画像、短尺動画の案を作成します。</p>
       </section>
       <section class="feature">
         <h3>本人が最終確認</h3>
-        <p>投稿前に、画像・タイトル・説明文・リンク・投稿先ボードをユーザー本人が確認します。</p>
+        <p>投稿前に、本文、メディア、公開範囲、商用コンテンツ表示、投稿先を本人が確認します。</p>
       </section>
       <section class="feature">
-        <h3>本人のボードへ投稿</h3>
-        <p>確認操作の後、Pinterest公式APIを利用して、ユーザー本人のボードへ投稿します。</p>
+        <h3>公式APIで投稿</h3>
+        <p>明示的な同意後だけ、TikTokなど各サービスの公式APIを使って本人のアカウントへ投稿します。</p>
       </section>
     </div>
 
@@ -220,7 +220,8 @@ const HOME_HTML = layout({
       </p>
     </div>
 
-    <a class="action" href="/privacy">プライバシーポリシーを見る</a>
+    <a class="action" href="/privacy">プライバシーポリシー</a>
+    <a class="action" href="/terms">利用規約</a>
   `,
 });
 
@@ -231,45 +232,44 @@ const PRIVACY_HTML = layout({
     <div class="brand"><span class="brand-dot" aria-hidden="true"></span>Privacy policy</div>
     <h1>プライバシー<br>ポリシー</h1>
     <p class="lead">
-      本ポリシーは、個人利用の「Note to Automation」（以下「本アプリ」）における
+      本ポリシーは、個人利用の「AI Operating System」（以下「本アプリ」）における
       情報の取り扱いを説明するものです。
     </p>
 
     <section id="information-collected">
       <h2>1. 取得する情報</h2>
       <ul>
-        <li>ユーザーが入力する公開済みnote記事のURL、タイトル、要約、任意のキーワード</li>
-        <li>任意でアップロードする背景画像</li>
-        <li>生成したPinterest向け画像、タイトル、説明文、代替テキスト、画像内コピー</li>
-        <li>Pinterest APIから取得するアカウント表示情報、ボード名、Board ID、Pin IDおよび処理結果</li>
-        <li>ローカルに保存する投稿日時、記事URL、投稿状態、画像の保存場所とハッシュ値、エラー内容</li>
-        <li>Pinterestアクセストークン、およびAI生成を利用する場合のOpenAI APIキー</li>
+        <li>利用者が入力するテーマ、URL、タイトル、要約、キーワード、制作指示</li>
+        <li>利用者が選択する画像・動画と、AIが生成した文章・画像・動画案</li>
+        <li>TikTokなど接続先APIから取得するアカウント表示情報、公開範囲、投稿IDおよび処理結果</li>
+        <li>ローカルに保存する承認履歴、投稿日時、投稿状態、ファイルの保存場所とハッシュ値、エラー内容</li>
+        <li>SNSのOAuthトークン、および利用者が設定したAIサービスのAPIキー</li>
       </ul>
       <p>
-        本アプリはPinterestのログインパスワードを取得しません。また、入力された記事URLの内容を
-        自動取得またはスクレイピングしません。
+        本アプリは接続先SNSのログインパスワードを取得しません。OAuthトークンとAPIキーの本体は
+        公開サイトや投稿履歴データベースへ保存しません。
       </p>
     </section>
 
     <section id="purpose">
       <h2>2. 情報の利用目的</h2>
       <ul>
-        <li>Pinterest向け画像および投稿文を作成するため</li>
-        <li>投稿内容と投稿先をユーザー本人に確認してもらうため</li>
-        <li>本人が選択したPinterestボードへPinを投稿するため</li>
-        <li>APIへの接続確認、ボード一覧表示、投稿結果確認を行うため</li>
-        <li>同じ画像と記事URLによる二重投稿を防止するため</li>
+        <li>市場調査、企画、文章、画像、動画などの制作を支援するため</li>
+        <li>投稿内容、公開範囲、商用表示、投稿先を利用者本人に確認してもらうため</li>
+        <li>本人が明示的に同意した内容を、本人のSNSアカウントへ投稿するため</li>
+        <li>API接続、投稿処理、公開状態、パフォーマンスを確認するため</li>
+        <li>承認後の変更や二重投稿を検出し、誤投稿を防止するため</li>
       </ul>
       <p>本アプリは、ユーザー本人が内容を確認して投稿ボタンを押した場合にのみ投稿処理を行います。</p>
     </section>
 
     <section id="token">
-      <h2>3. Pinterestアクセストークンの取り扱い</h2>
+      <h2>3. 認証情報の取り扱い</h2>
       <ul>
-        <li>Pinterest公式の認証手続きで発行されたトークンを、本人がローカルの<code>.env</code>へ設定します。</li>
-        <li>トークンはPinterest APIの認証にのみ利用し、ソースコードや本公開ページへ掲載しません。</li>
-        <li><code>.env</code>はGitの管理対象外とし、トークンを投稿履歴へ保存しません。</li>
-        <li>現在、OAuth認可コード交換、トークン更新、連携解除の完全自動化機能はありません。</li>
+        <li>OAuth認証で発行されたトークンは、接続したサービスの公式APIにのみ利用します。</li>
+        <li>トークン本体はWindows Credential Managerへ保存し、データベースには参照情報だけを保存します。</li>
+        <li>AIサービスのAPIキーと手動設定する認証情報は、Git対象外のローカル<code>.env</code>で管理します。</li>
+        <li>認証情報をソースコード、本公開ページ、承認履歴、監査ログへ掲載しません。</li>
       </ul>
     </section>
 
@@ -278,9 +278,9 @@ const PRIVACY_HTML = layout({
       <p>現在の本アプリには、ローカル情報を一定期間後に自動削除する機能はありません。</p>
       <ul>
         <li>入力情報と生成文は、主にアプリ実行中のセッション内で保持されます。</li>
-        <li>生成画像は、本人がローカルの<code>output</code>フォルダから削除するまで保存されます。</li>
-        <li>投稿履歴は、本人が<code>data/post_history.db</code>を削除するまで保存されます。</li>
-        <li>認証情報は、本人が<code>.env</code>から削除または変更するまで保存されます。</li>
+        <li>生成メディアは、本人がローカルの制作Assetフォルダから削除するまで保存されます。</li>
+        <li>承認・投稿・学習履歴は、本人がローカルのアプリデータを削除するまで保存されます。</li>
+        <li>認証情報は、本人が連携解除またはローカル設定から削除するまで保存されます。</li>
       </ul>
     </section>
 
@@ -288,30 +288,29 @@ const PRIVACY_HTML = layout({
       <h2>5. 第三者提供の有無</h2>
       <p>本アプリの運営者は、取り扱う情報を販売せず、広告目的で第三者へ提供しません。</p>
       <ul>
-        <li><strong>Pinterest:</strong> 接続確認、ボード取得、および本人が確認したPinの投稿に必要な情報を公式APIへ送信します。</li>
-        <li><strong>OpenAI（任意）:</strong> AI生成を有効にした場合のみ、記事URL、タイトル、要約、キーワードをAPIへ送信します。</li>
+        <li><strong>TikTok等の接続先SNS:</strong> 本人確認、投稿設定取得、および本人が承認したコンテンツの投稿に必要な情報を公式APIへ送信します。</li>
+        <li><strong>OpenAI、Anthropic、Google等（任意）:</strong> AI機能を実行した場合のみ、利用者が入力した制作情報を選択したAPIへ送信します。</li>
       </ul>
       <p>外部サービスへ送信された情報は、各サービスの規約およびプライバシーポリシーに従って取り扱われます。</p>
     </section>
 
     <section id="disconnect">
-      <h2>6. Pinterest連携を解除する方法</h2>
+      <h2>6. SNS連携を解除する方法</h2>
       <ol>
-        <li>本アプリを終了します。</li>
-        <li><code>.env</code>のPinterestアクセストークンの値を削除して保存します。</li>
-        <li>必要に応じてPinterestの設定画面から本アプリへのアクセスを解除します。</li>
+        <li>本アプリの公開・学習センターで対象接続を選択します。</li>
+        <li>連携解除を実行し、ローカルのトークンを削除します。</li>
+        <li>必要に応じて接続先SNSの設定画面からも本アプリへのアクセスを解除します。</li>
       </ol>
-      <p>本アプリ内には、Pinterest側でトークンを失効させる機能はありません。</p>
+      <p>対応するサービスでは、連携解除時に公式APIを使ったトークン失効も実行します。</p>
     </section>
 
     <section id="deletion">
       <h2>7. 情報の削除方法</h2>
       <ul>
         <li>入力中の情報は、本アプリを終了することでセッションから削除できます。</li>
-        <li>生成画像は、ローカルの<code>output</code>フォルダから削除できます。</li>
-        <li>投稿履歴は、本アプリ終了後に<code>data/post_history.db</code>を削除することで消去できます。</li>
-        <li>認証情報は、<code>.env</code>内の値またはファイルを削除することで消去できます。</li>
-        <li>投稿済みPinは、Pinterest上で本人が削除する必要があります。</li>
+        <li>生成メディアと承認・投稿履歴は、本人のローカルPCから削除できます。</li>
+        <li>OAuth接続はアプリの連携解除から、APIキーは<code>.env</code>から削除できます。</li>
+        <li>投稿済みコンテンツは、各SNS上で本人が削除する必要があります。</li>
       </ul>
     </section>
 
@@ -320,8 +319,8 @@ const PRIVACY_HTML = layout({
       <ul>
         <li>APIキーとアクセストークンをソースコードへ直接記載しません。</li>
         <li><code>.env</code>、生成画像、投稿履歴データベースをGitの管理対象外にします。</li>
-        <li>Pinterest公式APIとの通信には、初期設定でHTTPSを使用します。</li>
-        <li>投稿前確認、1件テスト投稿、画像ハッシュによる二重投稿防止を行います。</li>
+        <li>AIサービスとSNSの公式APIとの通信にはHTTPSを使用します。</li>
+        <li>OAuth state、PKCE、投稿前承認、Version Lock、Hashによる二重投稿防止を行います。</li>
         <li>アプリのデータは本人のローカルPC内で管理し、運営者用の外部データベースを使用しません。</li>
       </ul>
     </section>
@@ -330,18 +329,77 @@ const PRIVACY_HTML = layout({
       <h2>9. 問い合わせ先</h2>
       <p>
         本アプリは開発者本人のみが利用する個人用ツールです。
-        本ポリシーに関する連絡は、Pinterest Developer Appに登録された開発者連絡先を通じて受け付けます。
+        本ポリシーに関する連絡は、各Developer Appに登録された開発者連絡先を通じて受け付けます。
       </p>
     </section>
 
     <section id="dates">
       <h2>10. 制定日と更新日</h2>
-      <p>制定日: 2026年8月4日<br>最終更新日: 2026年8月5日</p>
+      <p>制定日: 2026年8月4日<br>最終更新日: 2026年8月30日</p>
     </section>
 
     <div class="notice">
-      <p>本アプリはPinterest、noteまたはOpenAIが提供・運営するサービスではありません。</p>
+      <p>本アプリはTikTok、Pinterest、X、Meta、OpenAI、AnthropicまたはGoogleが提供・運営するサービスではありません。</p>
     </div>
+    <a class="action" href="/">アプリ概要へ戻る</a>
+  `,
+});
+
+const TERMS_HTML = layout({
+  title: "利用規約 | AI Operating System",
+  description: "個人利用のAI Operating Systemに関する利用条件",
+  body: `
+    <div class="brand"><span class="brand-dot" aria-hidden="true"></span>Terms of use</div>
+    <h1>利用規約</h1>
+    <p class="lead">
+      本規約は、開発者本人が利用する「AI Operating System」（以下「本アプリ」）の
+      利用条件を定めるものです。
+    </p>
+
+    <section>
+      <h2>1. 提供する機能</h2>
+      <p>本アプリは、AIによる調査・企画・制作と、利用者本人の承認に基づくSNS投稿を支援します。</p>
+    </section>
+
+    <section>
+      <h2>2. 投稿前の確認</h2>
+      <ul>
+        <li>利用者は、本文、メディア、投稿先、公開範囲、広告・AI生成表示を投稿前に確認します。</li>
+        <li>著作権、肖像権、商標権、音源利用条件、各SNSの規約を確認する責任は利用者にあります。</li>
+        <li>本アプリは、明示的に承認された固定版だけを公式APIへ送信します。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>3. 禁止事項</h2>
+      <ul>
+        <li>違法、有害、権利侵害、虚偽または各SNSの規約に反するコンテンツの投稿</li>
+        <li>第三者のアカウントや認証情報の無断使用</li>
+        <li>API制限、審査制約、公開範囲または安全制御の回避</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>4. 外部サービス</h2>
+      <p>
+        AIおよびSNS機能は各社の公式APIに依存します。障害、仕様変更、審査、利用上限により
+        機能が停止または制限される場合があります。
+      </p>
+    </section>
+
+    <section>
+      <h2>5. 免責と停止</h2>
+      <p>
+        利用者は投稿結果を本人のアカウントで確認します。誤投稿や不正利用のおそれがある場合、
+        本アプリの全体停止機能を使い、接続先SNSでも連携を解除します。
+      </p>
+    </section>
+
+    <section>
+      <h2>6. 更新</h2>
+      <p>制定日: 2026年8月30日<br>最終更新日: 2026年8月30日</p>
+    </section>
+
     <a class="action" href="/">アプリ概要へ戻る</a>
   `,
 });
@@ -379,6 +437,10 @@ export default {
 
     if (url.pathname === "/privacy" || url.pathname === "/privacy.html") {
       return htmlResponse(PRIVACY_HTML, request.method);
+    }
+
+    if (url.pathname === "/terms" || url.pathname === "/terms.html") {
+      return htmlResponse(TERMS_HTML, request.method);
     }
 
     return new Response("Not Found", {

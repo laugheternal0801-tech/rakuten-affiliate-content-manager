@@ -816,8 +816,7 @@ class LLMContentGenerator(ContentGenerator):
                     summary_value,
                 )
             ) or not all(
-                isinstance(value, list)
-                for value in (key_points, review_notes, hashtags_value)
+                isinstance(value, list) for value in (key_points, review_notes, hashtags_value)
             ):
                 raise ValueError("empty content")
             if not all(
@@ -879,9 +878,7 @@ class LLMContentGenerator(ContentGenerator):
         product_count = len(context.products)
         review_char_limit = {5: 210, 6: 180, 7: 150}.get(product_count, 180)
         guidance_block = (
-            f"自動更新されたnote構成ガイド\n{format_guidance}\n\n"
-            if format_guidance
-            else ""
+            f"自動更新されたnote構成ガイド\n{format_guidance}\n\n" if format_guidance else ""
         )
         return (
             "あなたは商品比較記事を5年執筆しているレビュアーです。\n"
