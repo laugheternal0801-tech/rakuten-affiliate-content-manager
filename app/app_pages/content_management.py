@@ -189,10 +189,7 @@ else:
             content.products,
             affiliate_disclosure_required=True,
             info_verified_at=content.info_verified_at,
-            comparison_basis_saved=all(
-                bool(product.experience and product.experience.compared_products)
-                for product in content.products
-            ),
+            comparison_basis_saved=bool(research_links),
         )
         show_compliance_report(report.to_dict())
 

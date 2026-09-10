@@ -52,8 +52,8 @@ DANGEROUS_PHRASES = {
     "100％": "根拠が検証できない場合は削除してください。",
     "口コミでは": "他人の口コミの転載・一般化を避け、取得元を確認してください。",
     "レビューによると": "レビューの転載・要約ではなくAPIの集計値として扱ってください。",
-    "愛用している": "本人の確認済み体験情報がある場合だけ使用してください。",
-    "使ってみた": "本人の確認済み体験情報がある場合だけ使用してください。",
+    "愛用している": "本人が実際に使用したことを確認できる根拠がある場合だけ使用してください。",
+    "使ってみた": "本人が実際に使用したことを確認できる根拠がある場合だけ使用してください。",
 }
 
 UNUSED_PROHIBITED = [
@@ -115,20 +115,19 @@ def check_content(
                 )
             )
 
+    for phrase in UNUSED_PROHIBITED:
+        if phrase in text:
+            issues.append(
+                ComplianceIssue(
+                    "blocking",
+                    "fabricated_experience",
+                    f"根拠を確認できない使用体験の表現「{phrase}」があります。",
+                    "『商品情報を確認した範囲では』『購入候補として』『仕様上は』へ修正してください。",
+                )
+            )
+
     now = datetime.now().astimezone()
     for product in products:
-        exp = product.experience
-        if not exp or exp.has_used is not True:
-            for phrase in UNUSED_PROHIBITED:
-                if phrase in text:
-                    issues.append(
-                        ComplianceIssue(
-                            "blocking",
-                            "fabricated_experience",
-                            f"未使用商品の体験を示す表現「{phrase}」があります。",
-                            "『商品情報を確認した範囲では』『購入候補として』『仕様上は』へ修正してください。",
-                        )
-                    )
         if product.is_sample:
             issues.append(
                 ComplianceIssue(
@@ -205,8 +204,8 @@ def check_content(
             ComplianceIssue(
                 "warning",
                 "missing_comparison_basis",
-                "比較根拠が体験情報に保存されていません。",
-                "比較した商品・基準を保存してください。",
+                "比較根拠が調査ブリーフに記録されていません。",
+                "「比較・企画」で比較軸と根拠を記録し、制作へ引き継いでください。",
             )
         )
     unknown_numbers = _unknown_numeric_claims(text, products)

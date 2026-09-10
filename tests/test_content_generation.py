@@ -100,7 +100,7 @@ def test_x_copy_uses_requested_appeals_and_hashtags() -> None:
 def test_unverified_experience_is_not_presented_as_personal_use() -> None:
     output = TemplateContentGenerator().generate("楽天ROOM", make_context())
 
-    assert "使用感は未確認" in output.body
+    assert "使用感は確認していない" in output.body
     assert "使ってみた" not in output.body
     assert "愛用している" not in output.body
 
@@ -187,7 +187,7 @@ def test_claude_generator_sends_safe_structured_request_and_parses_response() ->
     assert output.metadata["推奨ハッシュタグ"] == ["#コーヒー", "#商品比較", "#楽天市場"]
 
 
-def test_comparison_article_uses_requested_structure_and_verified_experience_only() -> None:
+def test_comparison_article_ignores_legacy_experience_records() -> None:
     captured: dict[str, object] = {}
     products = make_comparison_products()
     products[0].experience = Experience(
@@ -258,11 +258,14 @@ def test_comparison_article_uses_requested_structure_and_verified_experience_onl
     assert "この記事が向いていない人" in prompt
     assert "使い方別のおすすめ" in prompt
     assert "コーヒーメーカー おすすめ 比較" in prompt
-    assert "準備が短く済んだ" in prompt
+    assert "準備が短く済んだ" not in prompt
+    assert "平日の朝" not in prompt
     assert "この未確認体験は送信しない" not in prompt
     assert "未確認の感想" not in prompt
-    assert "手入れが簡単というレビュー傾向" in prompt
-    assert "毎日使うなら洗いやすさを重視したい" in prompt
+    assert "手入れが簡単というレビュー傾向" not in prompt
+    assert "毎日使うなら洗いやすさを重視したい" not in prompt
+    assert '"verified": false' in prompt
+    assert '"review_observations": ""' in prompt
     assert "実際に使用した感想には置き換えない" in prompt
     assert "Markdownのパイプ表" in prompt
     assert "スマートフォンでも読みやすい縦型の比較表" in prompt

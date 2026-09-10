@@ -21,16 +21,14 @@ def test_score_calculation_returns_100_point_breakdown() -> None:
         "affiliate_rate": 25,
         "review_count": 20,
         "review_average": 15,
-        "price_fit": 15,
         "free_shipping": 10,
         "keyword_match": 15,
     }
     score = calculate_score(
         product,
         keyword="コーヒー",
-        target_min_price=1_000,
-        target_max_price=3_000,
         weights=weights,
     )
     assert score.total == 100
     assert score.details["review_count"]["label"] == "レビュー件数（対数正規化）"
+    assert "price_fit" not in score.details

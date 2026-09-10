@@ -54,12 +54,31 @@ def test_access_key_is_sent_in_query_only() -> None:
         assert request.url.params["applicationId"] == "test-application-secret"
         assert request.url.params["accessKey"] == "test-access-secret"
         assert "accessKey" not in request.headers
+        assert "genreId" not in request.url.params
+        assert "minPrice" not in request.url.params
+        assert "maxPrice" not in request.url.params
         return httpx.Response(200, json={"Items": []})
 
     client = RakutenAPIClient(
         make_settings(), client=httpx.Client(transport=httpx.MockTransport(handler))
     )
     client.search(SearchCriteria(keyword="コーヒー"))
+
+
+def test_search_criteria_only_exposes_simple_product_search_options() -> None:
+    assert set(SearchCriteria.model_fields) == {
+        "keyword",
+        "free_shipping_only",
+        "available_only",
+        "image_only",
+        "sort",
+        "hits",
+    }
+
+
+def test_search_keyword_is_required() -> None:
+    with pytest.raises(ValueError, match="検索キーワードを入力"):
+        SearchCriteria(keyword="   ")
 
 
 def test_api_error_has_japanese_message() -> None:

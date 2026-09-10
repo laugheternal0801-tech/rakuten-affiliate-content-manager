@@ -59,7 +59,6 @@ pages = {
     "ホーム・商品": [
         st.Page(page_dir / "dashboard.py", title="ダッシュボード", icon=":material/dashboard:"),
         st.Page(page_dir / "product_search.py", title="商品検索", icon=":material/search:"),
-        st.Page(page_dir / "products.py", title="商品・体験情報", icon=":material/inventory_2:"),
     ],
     "商品調査・企画": [
         st.Page(

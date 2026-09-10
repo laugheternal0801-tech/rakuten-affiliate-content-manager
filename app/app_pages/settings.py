@@ -31,14 +31,11 @@ with st.form("score_settings"):
     review_average = row1[2].number_input(
         "平均評価", min_value=0.0, value=float(current_weights["review_average"])
     )
-    row2 = st.columns(3)
-    price_fit = row2[0].number_input(
-        "希望価格帯との一致", min_value=0.0, value=float(current_weights["price_fit"])
-    )
-    free_shipping = row2[1].number_input(
+    row2 = st.columns(2)
+    free_shipping = row2[0].number_input(
         "送料無料", min_value=0.0, value=float(current_weights["free_shipping"])
     )
-    keyword_match = row2[2].number_input(
+    keyword_match = row2[1].number_input(
         "キーワード一致度", min_value=0.0, value=float(current_weights["keyword_match"])
     )
     save_weights = st.form_submit_button("配点を保存", icon=":material/save:", type="primary")
@@ -48,7 +45,6 @@ if save_weights:
             affiliate_rate=affiliate_rate,
             review_count=review_count,
             review_average=review_average,
-            price_fit=price_fit,
             free_shipping=free_shipping,
             keyword_match=keyword_match,
         )

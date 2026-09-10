@@ -120,7 +120,7 @@ PLATFORM_ROOMS: dict[str, PlatformRoom] = {
         title="楽天ROOMルーム",
         icon=":material/storefront:",
         description="楽天市場の商品情報から紹介文とコレクション案を作る部屋です。",
-        creation_hint="価格・レビュー・送料・確認済み体験を整理した紹介文を最大3案作成できます。",
+        creation_hint="価格・レビュー・送料・商品特徴を整理した紹介文を最大3案作成できます。",
         external_label="楽天ROOMを開く",
         external_url="https://room.rakuten.co.jp/",
         menu_items=(
@@ -205,11 +205,11 @@ def render_platform_room(channel: str) -> None:
             st.session_state["management_channel_request"] = room.channel
             st.switch_page(page_dir / "content_management.py")
         if st.button(
-            f"保存商品を確認（{product_count}件）",
+            f"商品を検索・保存（保存済み {product_count}件）",
             key=f"room_products_{room.slug}",
-            icon=":material/inventory_2:",
+            icon=":material/search:",
         ):
-            st.switch_page(page_dir / "products.py")
+            st.switch_page(page_dir / "product_search.py")
 
     st.subheader("制作メニュー", anchor=False)
     menu_columns = st.columns(2)

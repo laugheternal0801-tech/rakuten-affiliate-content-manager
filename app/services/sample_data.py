@@ -79,8 +79,6 @@ def seed_sample_data(session: Session) -> bool:
         score = calculate_score(
             values,
             keyword="コーヒー",
-            target_min_price=1000,
-            target_max_price=3000,
             weights=DEFAULT_SCORE_WEIGHTS,
         )
         values_with_score = {

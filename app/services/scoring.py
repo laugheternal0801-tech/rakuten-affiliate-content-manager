@@ -38,36 +38,16 @@ def keyword_match_ratio(keyword: str, text: str) -> float:
     return matched / len(keywords)
 
 
-def price_fit_ratio(price: int, minimum: int | None, maximum: int | None) -> float:
-    if minimum is None and maximum is None:
-        return 0.5
-    if minimum is not None and maximum is not None:
-        if minimum <= price <= maximum:
-            return 1.0
-        span = max(maximum - minimum, max(maximum, 1) * 0.25, 1)
-        distance = minimum - price if price < minimum else price - maximum
-        return max(0.0, 1.0 - distance / span)
-    if minimum is not None:
-        return 1.0 if price >= minimum else max(0.0, price / minimum)
-    assert maximum is not None
-    return 1.0 if price <= maximum else max(0.0, maximum / max(price, 1))
-
-
 def calculate_score(
     product: Mapping[str, Any],
     *,
     keyword: str,
-    target_min_price: int | None,
-    target_max_price: int | None,
     weights: Mapping[str, float],
 ) -> ScoreResult:
     factors = {
         "affiliate_rate": min(max(float(product.get("affiliate_rate", 0)) / 10, 0), 1),
         "review_count": normalize_review_count(int(product.get("review_count", 0))),
         "review_average": min(max(float(product.get("review_average", 0)) / 5, 0), 1),
-        "price_fit": price_fit_ratio(
-            int(product.get("item_price", 0)), target_min_price, target_max_price
-        ),
         "free_shipping": 1.0 if int(product.get("postage_flag", 1)) == 0 else 0.0,
         "keyword_match": keyword_match_ratio(
             keyword,
@@ -84,7 +64,6 @@ def calculate_score(
         "affiliate_rate": "アフィリエイト料率",
         "review_count": "レビュー件数（対数正規化）",
         "review_average": "平均評価",
-        "price_fit": "希望価格帯との一致",
         "free_shipping": "送料無料",
         "keyword_match": "キーワード一致度",
     }

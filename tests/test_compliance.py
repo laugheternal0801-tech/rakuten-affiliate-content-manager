@@ -42,6 +42,19 @@ def test_unused_product_false_experience_is_blocked() -> None:
     assert any(issue.code == "fabricated_experience" for issue in report.issues)
 
 
+def test_legacy_verified_experience_does_not_allow_personal_claims() -> None:
+    product = make_product()
+    product.experience = Experience(
+        product_id=1,
+        has_used=True,
+        positive_points="旧画面で保存した感想",
+        verified_at=datetime.now().date(),
+    )
+    report = run_check("PR\n使ってみたらよかったです。", product)
+    assert report.status == "投稿不可"
+    assert any(issue.code == "fabricated_experience" for issue in report.issues)
+
+
 def test_dangerous_expression_is_warned() -> None:
     product = make_product()
     report = run_check("PR\n絶対に満足できます。", product)
