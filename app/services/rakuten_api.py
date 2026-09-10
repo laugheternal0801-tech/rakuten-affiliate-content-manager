@@ -84,9 +84,6 @@ class RakutenAPIClient:
         }
         optional = {
             "keyword": criteria.keyword.strip(),
-            "genreId": criteria.genre_id,
-            "minPrice": criteria.min_price,
-            "maxPrice": criteria.max_price,
             "affiliateId": self.settings.rakuten_affiliate_id,
         }
         params.update({key: value for key, value in optional.items() if value not in {None, ""}})
@@ -231,13 +228,8 @@ class RakutenAPIClient:
     def _apply_local_filters(
         products: list[dict[str, Any]], criteria: SearchCriteria
     ) -> list[dict[str, Any]]:
-        excluded = [term.lower() for term in criteria.excluded_keywords if term.strip()]
         return [
             product
             for product in products
-            if int(product["review_count"]) >= criteria.min_review_count
-            and float(product["review_average"]) >= criteria.min_review_average
-            and float(product["affiliate_rate"]) >= criteria.min_affiliate_rate
-            and (not criteria.free_shipping_only or int(product["postage_flag"]) == 0)
-            and not any(term in str(product["item_name"]).lower() for term in excluded)
+            if not criteria.free_shipping_only or int(product["postage_flag"]) == 0
         ]

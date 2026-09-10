@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from app.config import get_settings
 from app.database import session_scope
-from app.repositories import get_setting, list_products, save_product
+from app.repositories import delete_product, get_setting, list_products, save_product
 from app.schemas import ScoreWeights, SearchCriteria
 from app.services.rakuten_api import RakutenAPIError
 from app.services.scoring import calculate_score
@@ -30,21 +30,9 @@ sort_options = {
 
 with st.form("product_search"):
     keyword = st.text_input("検索キーワード", placeholder="例: コーヒー 豆")
-    genre_id = st.text_input("ジャンルID", placeholder="例: 100356")
-    row1 = st.columns(3)
-    min_price = row1[0].number_input("最低価格", min_value=0, step=100)
-    max_price = row1[1].number_input("最高価格", min_value=0, step=100)
-    min_review_count = row1[2].number_input("最低レビュー件数", min_value=0, step=10)
-    row2 = st.columns(3)
-    min_review_average = row2[0].number_input(
-        "最低平均評価", min_value=0.0, max_value=5.0, step=0.1
-    )
-    min_affiliate_rate = row2[1].number_input(
-        "最低アフィリエイト料率（%）", min_value=0.0, max_value=100.0, step=0.5
-    )
-    hits = row2[2].number_input("取得件数", min_value=1, max_value=30, value=20)
-    excluded = st.text_input("除外キーワード", help="カンマ区切り")
-    sort_label = st.selectbox("並び順", list(sort_options))
+    search_options = st.columns(2)
+    sort_label = search_options[0].selectbox("並び順", list(sort_options))
+    hits = search_options[1].number_input("取得件数", min_value=1, max_value=30, value=20)
     flags = st.columns(3)
     free_shipping = flags[0].checkbox("送料無料のみ")
     available_only = flags[1].checkbox("在庫ありのみ", value=True)
@@ -55,16 +43,9 @@ if submitted:
     try:
         criteria = SearchCriteria(
             keyword=keyword,
-            genre_id=genre_id,
-            min_price=int(min_price) or None,
-            max_price=int(max_price) or None,
-            min_review_count=int(min_review_count),
-            min_review_average=float(min_review_average),
-            min_affiliate_rate=float(min_affiliate_rate),
             free_shipping_only=free_shipping,
             available_only=available_only,
             image_only=image_only,
-            excluded_keywords=[term.strip() for term in excluded.split(",") if term.strip()],
             sort=sort_options[sort_label],
             hits=int(hits),
         )
@@ -96,8 +77,6 @@ if submitted:
                 score = calculate_score(
                     product,
                     keyword=criteria.keyword,
-                    target_min_price=criteria.min_price,
-                    target_max_price=criteria.max_price,
                     weights=weights,
                 )
                 product["score"] = score.total
@@ -135,3 +114,43 @@ if results:
         st.caption("行を選択して保存します。評価点だけで商品を自動決定しません。")
 else:
     st.caption("検索条件を入力して商品を検索してください。")
+
+with session_scope() as session:
+    saved_products = list_products(session)
+
+with st.expander(f"保存済み商品を整理（{len(saved_products)}件）", icon=":material/inventory_2:"):
+    if not saved_products:
+        st.caption("保存済みの商品はありません。検索結果から商品を選んで保存できます。")
+    else:
+        saved_product_id = st.selectbox(
+            "削除する商品",
+            [product.id for product in saved_products],
+            format_func=lambda product_id: next(
+                product.item_name for product in saved_products if product.id == product_id
+            ),
+        )
+        saved_product = next(
+            product for product in saved_products if product.id == saved_product_id
+        )
+        confirm_delete = st.checkbox(
+            f"「{saved_product.item_name}」を削除する",
+            key=f"confirm_saved_product_delete_{saved_product.id}",
+        )
+        if st.button(
+            "選択した商品を削除",
+            icon=":material/delete:",
+            disabled=not confirm_delete,
+        ):
+            with session_scope() as session:
+                deleted = delete_product(session, saved_product.id)
+            if deleted:
+                st.session_state.search_results = [
+                    product
+                    for product in st.session_state.get("search_results", [])
+                    if product.get("item_code") != saved_product.item_code
+                ]
+                st.success("保存済み商品から削除しました。")
+                st.rerun()
+            else:
+                st.warning("商品はすでに削除されています。画面を更新します。")
+                st.rerun()

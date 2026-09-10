@@ -38,7 +38,7 @@ from app.services.note_image_generation import (
 )
 from app.streamlit_support import show_compliance_report, show_note_posting_assistant
 
-st.caption("商品情報と確認済みの体験情報をもとに、媒体に合う日本語の投稿案を最大3案作成します。")
+st.caption("保存した商品情報と調査ブリーフをもとに、媒体に合う日本語の投稿案を最大3案作成します。")
 
 with session_scope() as session:
     products = list_products(session)
@@ -154,7 +154,7 @@ if comparison_mode:
         int(product_id) for product_id in requested_default_ids if int(product_id) in eligible_ids
     ]
     st.info(
-        "note投稿では、商品・体験情報で保存した設定と専用プロンプトを使い、"
+        "note投稿では、ここで設定した内容と調査ブリーフ、専用プロンプトを使い、"
         "Claudeが7部構成・約3,000字の比較記事を作ります。",
         icon=":material/article:",
     )
@@ -264,12 +264,15 @@ else:
                         for product_id in (
                             active_research_handoff.get("product_ids", [])
                             if isinstance(active_research_handoff, dict)
-                            else active_clone.get("product_ids", [])
+                            else (
+                                active_clone.get("product_ids", [])
+                                if isinstance(active_clone, dict)
+                                else []
+                            )
                         )
                         if int(product_id) in {product.id for product in products}
                     ]
-                    if isinstance(active_research_handoff, dict)
-                    or isinstance(active_clone, dict)
+                    if isinstance(active_research_handoff, dict) or isinstance(active_clone, dict)
                     else []
                 ),
             )
@@ -279,9 +282,7 @@ else:
                     str(active_research_handoff.get("theme", ""))
                     if isinstance(active_research_handoff, dict)
                     else (
-                        str(active_clone.get("theme", ""))
-                        if isinstance(active_clone, dict)
-                        else ""
+                        str(active_clone.get("theme", "")) if isinstance(active_clone, dict) else ""
                     )
                 ),
                 placeholder="例：自宅で楽しむコーヒー選び",
@@ -897,21 +898,14 @@ if drafts:
                             st.rerun()
 
     selected_products = [product for product in products if product.id in draft["product_ids"]]
-    verified_dates = [
-        product.experience.verified_at
-        for product in selected_products
-        if product.experience and product.experience.verified_at
-    ]
+    verified_dates = [product.fetched_at.date() for product in selected_products]
     info_verified_at = min(verified_dates) if verified_dates else None
     report = check_content(
         body,
         selected_products,
         affiliate_disclosure_required=True,
         info_verified_at=info_verified_at,
-        comparison_basis_saved=all(
-            bool(product.experience and product.experience.compared_products)
-            for product in selected_products
-        ),
+        comparison_basis_saved=bool(draft.get("research_brief_id")),
     )
     st.subheader("公開前チェック")
     show_compliance_report(report.to_dict())

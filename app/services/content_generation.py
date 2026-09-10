@@ -9,7 +9,7 @@ from typing import Any
 
 import httpx
 
-from app.models import Experience, Product
+from app.models import Product
 from app.schemas import GeneratedContent
 from app.services.note_format_optimizer import load_note_format_guidance
 
@@ -23,7 +23,6 @@ APPEAL_POINT_OPTIONS = [
     "送料",
     "ポイント倍率",
     "商品の特徴",
-    "確認済みの体験情報",
 ]
 
 CHANNEL_PROFILES: dict[str, dict[str, Any]] = {
@@ -159,10 +158,6 @@ def _link(product: Product, mode: str) -> str:
     return "［楽天市場で見る］"
 
 
-def _experience(product: Product) -> Experience | None:
-    return product.experience
-
-
 def _fact_summary(product: Product) -> str:
     postage = "送料無料" if product.postage_flag == 0 else "送料条件は商品ページで要確認"
     return (
@@ -176,22 +171,6 @@ def _compact_name(name: str, limit: int = 42) -> str:
     return clean if len(clean) <= limit else f"{clean[: limit - 1]}…"
 
 
-def _experience_section(product: Product) -> str:
-    exp = _experience(product)
-    if not exp or exp.has_used is not True:
-        return (
-            "商品情報を確認した範囲では比較候補です。使用感は未確認のため、"
-            "体験に関する表現は公開前に確認してください。"
-        )
-    facts = [
-        f"使用期間：{exp.usage_period or '要確認'}",
-        f"使用場面：{exp.usage_scene or '要確認'}",
-        f"よかった点：{exp.positive_points or '要確認'}",
-        f"気になった点：{exp.negative_points or '要確認'}",
-    ]
-    return "\n".join(facts)
-
-
 def _prefix(context: GenerationContext) -> str:
     if context.pr_required:
         return "【PR】\n\n"
@@ -199,7 +178,6 @@ def _prefix(context: GenerationContext) -> str:
 
 
 def _appeal_sentences(product: Product, context: GenerationContext) -> list[str]:
-    exp = _experience(product)
     candidates = {
         "価格": f"確認時点の価格は{product.item_price:,}円です。",
         "レビュー評価": (
@@ -212,11 +190,6 @@ def _appeal_sentences(product: Product, context: GenerationContext) -> list[str]
         ),
         "ポイント倍率": f"確認時点のポイント倍率は{product.point_rate:g}倍です。",
         "商品の特徴": product.catchcopy.strip() or "商品の詳しい仕様は商品ページで確認できます。",
-        "確認済みの体験情報": (
-            exp.positive_points.strip()
-            if exp and exp.has_used is True and exp.positive_points.strip()
-            else "使用感は未確認のため、取得した商品情報の範囲で紹介しています。"
-        ),
     }
     selected = context.appeal_points or ("価格", "レビュー評価", "送料")
     return [candidates[point] for point in selected if point in candidates]
@@ -357,7 +330,6 @@ class TemplateContentGenerator(ContentGenerator):
 
         sections: list[str] = []
         for product in products:
-            exp = _experience(product)
             sections.append(
                 "\n".join(
                     [
@@ -366,12 +338,8 @@ class TemplateContentGenerator(ContentGenerator):
                         "",
                         f"確認できた情報：{_fact_summary(product)}",
                         *[f"- {sentence}" for sentence in _appeal_sentences(product, context)],
-                        "- 向いている人："
-                        + ((exp.suitable_for if exp else "") or "体験情報を入力してください"),
-                        "- 注意点："
-                        + ((exp.negative_points if exp else "") or "価格・送料・在庫は要確認"),
-                        "",
-                        _experience_section(product),
+                        "- 向いている人：商品情報と自分の条件を照らし合わせたい人",
+                        "- 注意点：価格・送料・在庫は購入前に要確認",
                         "",
                         _link(product, context.link_mode),
                     ]
@@ -486,7 +454,6 @@ class TemplateContentGenerator(ContentGenerator):
 
     def _instagram(self, context: GenerationContext) -> GeneratedContent:
         product = context.products[0]
-        fact_guard = _experience_section(product)
         appeal_text = "\n".join(f"・{line}" for line in _appeal_sentences(product, context))
         custom = _custom_line(context)
         body_parts = [
@@ -497,7 +464,7 @@ class TemplateContentGenerator(ContentGenerator):
             "",
             appeal_text,
             "",
-            fact_guard,
+            "使用感は確認していないため、取得した商品情報の範囲で紹介しています。",
         ]
         if custom:
             body_parts.extend(["", custom])
@@ -547,8 +514,6 @@ class TemplateContentGenerator(ContentGenerator):
 
     def _room(self, context: GenerationContext) -> GeneratedContent:
         product = context.products[0]
-        exp = _experience(product)
-        used = exp is not None and exp.has_used is True
         openings = [
             f"{context.theme}の候補としてチェックした商品です。",
             f"価格・レビュー・送料から、{context.theme}の候補を整理しました。",
@@ -560,11 +525,9 @@ class TemplateContentGenerator(ContentGenerator):
             _compact_name(product.item_name, 70),
             "",
             *[f"・{line}" for line in _appeal_sentences(product, context)],
+            "",
+            "使用感は確認していないため、商品情報の範囲で紹介しています。",
         ]
-        if used and exp and exp.positive_points:
-            body_parts.extend(["", f"確認済みの使用感：{exp.positive_points}"])
-        else:
-            body_parts.extend(["", "使用感は未確認のため、商品情報の範囲で紹介しています。"])
         custom = _custom_line(context)
         if custom:
             body_parts.extend(["", custom])
@@ -604,12 +567,8 @@ def _clean_reference_text(value: str | None, limit: int = 1_500) -> str:
 
 
 def _product_reference(product: Product, link_mode: str) -> dict[str, Any]:
-    experience = product.experience
-    has_verified_experience = bool(
-        experience and experience.has_used is True and experience.verified_at is not None
-    )
     experience_data: dict[str, Any] = {
-        "verified": has_verified_experience,
+        "verified": False,
         "usage_period": "",
         "usage_scene": "",
         "positive_points": "",
@@ -618,29 +577,10 @@ def _product_reference(product: Product, link_mode: str) -> dict[str, Any]:
         "unsuitable_for": "",
         "verified_at": "",
     }
-    if experience and experience.has_used is True and experience.verified_at is not None:
-        experience_data.update(
-            {
-                "usage_period": _clean_reference_text(experience.usage_period, 300),
-                "usage_scene": _clean_reference_text(experience.usage_scene),
-                "positive_points": _clean_reference_text(experience.positive_points),
-                "negative_points": _clean_reference_text(experience.negative_points),
-                "suitable_for": _clean_reference_text(experience.suitable_for),
-                "unsuitable_for": _clean_reference_text(experience.unsuitable_for),
-                "verified_at": experience.verified_at.isoformat(),
-            }
-        )
-
     research_notes = {
-        "review_observations": _clean_reference_text(
-            experience.compared_products if experience else ""
-        ),
-        "editor_opinion": _clean_reference_text(experience.memo if experience else ""),
-        "checked_at": (
-            experience.verified_at.isoformat()
-            if experience and experience.verified_at is not None
-            else ""
-        ),
+        "review_observations": "",
+        "editor_opinion": "",
+        "checked_at": "",
     }
 
     return {

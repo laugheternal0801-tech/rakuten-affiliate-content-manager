@@ -10,18 +10,15 @@ from app.models import (
     AppSetting,
     Content,
     ContentProduct,
-    Experience,
     NoteImageAsset,
     Performance,
     Product,
 )
-from app.schemas import ExperienceInput
 
 DEFAULT_SCORE_WEIGHTS = {
     "affiliate_rate": 25.0,
     "review_count": 20.0,
     "review_average": 15.0,
-    "price_fit": 15.0,
     "free_shipping": 10.0,
     "keyword_match": 15.0,
 }
@@ -38,7 +35,7 @@ DEFAULT_WEEKLY_PLAN = [
 
 
 def _product_query() -> Select[tuple[Product]]:
-    return select(Product).options(selectinload(Product.experience)).order_by(Product.id.desc())
+    return select(Product).order_by(Product.id.desc())
 
 
 def list_products(session: Session) -> list[Product]:
@@ -63,17 +60,6 @@ def save_product(session: Session, values: dict[str, Any]) -> Product:
             setattr(product, key, value)
     session.flush()
     return product
-
-
-def upsert_experience(session: Session, product_id: int, payload: ExperienceInput) -> Experience:
-    experience = session.scalar(select(Experience).where(Experience.product_id == product_id))
-    if experience is None:
-        experience = Experience(product_id=product_id)
-        session.add(experience)
-    for key, value in payload.model_dump().items():
-        setattr(experience, key, value)
-    session.flush()
-    return experience
 
 
 def delete_product(session: Session, product_id: int) -> bool:
@@ -131,11 +117,7 @@ def list_contents(session: Session) -> list[Content]:
 
 
 def get_content(session: Session, content_id: int) -> Content | None:
-    query = (
-        select(Content)
-        .options(selectinload(Content.products).selectinload(Product.experience))
-        .where(Content.id == content_id)
-    )
+    query = select(Content).options(selectinload(Content.products)).where(Content.id == content_id)
     return session.scalar(query)
 
 
