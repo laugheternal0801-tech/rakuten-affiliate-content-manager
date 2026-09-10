@@ -9,18 +9,6 @@ from app.repositories import DEFAULT_SCORE_WEIGHTS, get_setting, set_setting
 from app.schemas import ScoreWeights
 
 settings = get_settings()
-st.subheader("楽天API")
-with st.container(border=True):
-    if settings.rakuten_configured:
-        st.success(
-            "Application ID と Access Key が設定されています。", icon=":material/cloud_done:"
-        )
-    else:
-        st.warning(
-            "認証情報が未設定です。アプリはサンプルモードで動作します。", icon=":material/science:"
-        )
-    st.caption(f"公式商品検索API: {settings.rakuten_api_endpoint}")
-    st.caption("認証値は画面・ログに表示しません。.envを編集後、アプリを再起動してください。")
 
 with session_scope() as session:
     current_weights = get_setting(session, "score_weights", DEFAULT_SCORE_WEIGHTS)
@@ -107,15 +95,13 @@ with st.container(border=True):
     st.markdown("**公開アプリ（Streamlit Community Cloud）**")
     st.write("アプリの管理画面で「Settings」→「Secrets」を開き、次を追加して保存します。")
     st.code(
-        'ANTHROPIC_API_KEY = "ここにAnthropicのAPIキー"\n'
-        'ANTHROPIC_MODEL = "claude-sonnet-5"',
+        'ANTHROPIC_API_KEY = "ここにAnthropicのAPIキー"\nANTHROPIC_MODEL = "claude-sonnet-5"',
         language="toml",
     )
     st.markdown("**Windowsのローカルアプリ**")
     st.write("プロジェクトの `.env` に次を追加し、アプリを再起動します。")
     st.code(
-        "ANTHROPIC_API_KEY=ここにAnthropicのAPIキー\n"
-        "ANTHROPIC_MODEL=claude-sonnet-5",
+        "ANTHROPIC_API_KEY=ここにAnthropicのAPIキー\nANTHROPIC_MODEL=claude-sonnet-5",
         language="dotenv",
     )
     st.warning(
@@ -123,6 +109,43 @@ with st.container(border=True):
         icon=":material/security:",
     )
     st.caption("Claude APIの利用料はAnthropicアカウント側で発生します。")
+
+st.subheader("AI会議（複数API）")
+with st.container(border=True):
+    provider_models = settings.ai_council_provider_models
+    configured_live_providers = list(provider_models)
+    if len(configured_live_providers) == 3:
+        st.badge("3社AI会議を利用可能", icon=":material/groups:", color="green")
+    elif configured_live_providers:
+        st.badge(
+            f"{len(configured_live_providers)}社設定済み・3社必要",
+            icon=":material/info:",
+            color="orange",
+        )
+    else:
+        st.badge("APIキー未設定", icon=":material/key_off:", color="gray")
+    st.write(
+        "OpenAI、Anthropic、Geminiがそれぞれ独立して市場調査・企画・提案を作り、"
+        "3社全員の議論後に最終結果を統合します。3社すべてのAPIキーが必要です。"
+    )
+    st.code(
+        "OPENAI_API_KEY=ここにOpenAIのAPIキー\n"
+        "AI_COUNCIL_OPENAI_MODEL=gpt-5.6-sol\n\n"
+        "ANTHROPIC_API_KEY=ここにAnthropicのAPIキー\n"
+        "AI_COUNCIL_ANTHROPIC_MODEL=claude-fable-5-1\n\n"
+        "GEMINI_API_KEY=ここにGeminiのAPIキー\n"
+        "AI_COUNCIL_GEMINI_MODEL=gemini-3.1-pro-preview",
+        language="dotenv",
+    )
+    st.warning(
+        "AI会議は最高品質設定で複数回APIを呼び出します。"
+        "画面に表示される予定回数を確認してから開始してください。",
+        icon=":material/payments:",
+    )
+    st.caption(
+        "キーとモデル名を.envまたはSecretsへ設定してアプリを再起動してください。"
+        "会議はバックグラウンドで継続し、3社それぞれの各工程出力は実行履歴へ逐次保存されます。"
+    )
 
 st.subheader("noteアイキャッチ画像（GPT Image 2）")
 with st.container(border=True):
@@ -142,15 +165,13 @@ with st.container(border=True):
     st.markdown("**公開アプリ（Streamlit Community Cloud）**")
     st.write("アプリの管理画面で「Settings」→「Secrets」を開き、次を追加して保存します。")
     st.code(
-        'OPENAI_API_KEY = "ここにOpenAIのAPIキー"\n'
-        "OPENAI_IMAGE_TIMEOUT_SECONDS = 150",
+        'OPENAI_API_KEY = "ここにOpenAIのAPIキー"\nOPENAI_IMAGE_TIMEOUT_SECONDS = 150',
         language="toml",
     )
     st.markdown("**Windowsのローカルアプリ**")
     st.write("プロジェクトの `.env` に次を追加し、アプリを再起動します。")
     st.code(
-        "OPENAI_API_KEY=ここにOpenAIのAPIキー\n"
-        "OPENAI_IMAGE_TIMEOUT_SECONDS=150",
+        "OPENAI_API_KEY=ここにOpenAIのAPIキー\nOPENAI_IMAGE_TIMEOUT_SECONDS=150",
         language="dotenv",
     )
     st.warning(

@@ -7,6 +7,7 @@ from sqlalchemy import select
 from app.database import session_scope
 from app.models import Content, Performance
 from app.repositories import add_performance_rows, get_setting, set_setting
+from app.research_catalog.outcomes import link_unlinked_performance_rows
 from app.services.analytics import (
     CANONICAL_FIELDS,
     CSVImportError,
@@ -38,12 +39,12 @@ if uploaded is not None:
     except CSVImportError as exc:
         st.error(str(exc))
 
-frame = st.session_state.get("csv_frame")
-if isinstance(frame, pd.DataFrame):
+cached_frame = st.session_state.get("csv_frame")
+if isinstance(cached_frame, pd.DataFrame):
     st.subheader("列マッピング")
     st.caption("列名が変更されても、保存した対応関係を再利用できます。")
     mapping: dict[str, str] = {}
-    options = ["", *list(frame.columns)]
+    options = ["", *list(cached_frame.columns)]
     for row_start in range(0, len(CANONICAL_FIELDS), 2):
         columns = st.columns(2)
         for offset, field in enumerate(CANONICAL_FIELDS[row_start : row_start + 2]):
@@ -63,16 +64,40 @@ if isinstance(frame, pd.DataFrame):
             st.success("列マッピングを保存しました。")
         if st.button("CSVを取り込む", icon=":material/upload:", type="primary"):
             try:
-                mapped = apply_mapping(frame, mapping)
+                mapped = apply_mapping(cached_frame, mapping)
                 rows = rows_for_database(mapped, st.session_state.get("csv_filename", "report.csv"))
                 with session_scope() as session:
                     count = add_performance_rows(session, rows)
+                    link_result = link_unlinked_performance_rows(session)
                     set_setting(session, "csv_mapping", mapping)
-                st.success(f"{count}行を取り込みました。")
+                st.success(
+                    f"{count}行を取り込み、{link_result.linked}行を保存商品へ正確一致で"
+                    "関連付けました。"
+                )
+                if link_result.ambiguous or link_result.unmatched:
+                    st.info(
+                        f"自動関連付けしなかった行: 候補が複数 {link_result.ambiguous}件／"
+                        f"一致なし {link_result.unmatched}件。推測では関連付けません。"
+                    )
                 st.session_state.csv_mapping = mapping
             except CSVImportError as exc:
                 st.error(str(exc))
-    st.dataframe(frame.head(20), hide_index=True)
+    st.dataframe(cached_frame.head(20), hide_index=True)
+
+with st.expander("取り込み済み成果と保存商品を照合", icon=":material/link:"):
+    st.caption(
+        "商品URLの完全一致、または商品名と店舗名の完全一致が1件だけの場合に関連付けます。"
+        "URLの書き換えや曖昧一致は行いません。"
+    )
+    if st.button("未関連付けデータを照合", icon=":material/fact_check:"):
+        with session_scope() as session:
+            link_result = link_unlinked_performance_rows(session)
+        st.success(f"{link_result.linked}行を新たに関連付けました。")
+        if link_result.ambiguous or link_result.unmatched:
+            st.info(
+                f"保留: 候補が複数 {link_result.ambiguous}件／一致なし "
+                f"{link_result.unmatched}件"
+            )
 
 with session_scope() as session:
     performances = list(session.scalars(select(Performance).order_by(Performance.date)))
@@ -126,7 +151,7 @@ with right.container(border=True):
     st.bar_chart(by_channel, x="媒体", y="成果報酬")
     st.subheader("商品別報酬")
     by_product = (
-        analysis.groupby("商品名", as_index=False)["成果報酬"].sum().nlargest(15, "成果報酬")
+        analysis.groupby("商品名", as_index=False)[["成果報酬"]].sum().nlargest(15, "成果報酬")
     )
     st.bar_chart(by_product, x="商品名", y="成果報酬", horizontal=True)
 

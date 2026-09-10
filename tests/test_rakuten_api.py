@@ -49,6 +49,19 @@ def test_normal_response_is_transformed() -> None:
     assert result["products"][0]["image_url"].startswith("https://")
 
 
+def test_access_key_is_sent_in_query_only() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.params["applicationId"] == "test-application-secret"
+        assert request.url.params["accessKey"] == "test-access-secret"
+        assert "accessKey" not in request.headers
+        return httpx.Response(200, json={"Items": []})
+
+    client = RakutenAPIClient(
+        make_settings(), client=httpx.Client(transport=httpx.MockTransport(handler))
+    )
+    client.search(SearchCriteria(keyword="コーヒー"))
+
+
 def test_api_error_has_japanese_message() -> None:
     transport = httpx.MockTransport(
         lambda request: httpx.Response(400, json={"error_description": "bad keyword"})
@@ -56,6 +69,33 @@ def test_api_error_has_japanese_message() -> None:
     client = RakutenAPIClient(make_settings(), client=httpx.Client(transport=transport))
     with pytest.raises(RakutenAPIError, match="検索条件"):
         client.search(SearchCriteria(keyword="コーヒー"))
+
+
+def test_403_has_authentication_guidance() -> None:
+    transport = httpx.MockTransport(lambda request: httpx.Response(403, json={}))
+    client = RakutenAPIClient(make_settings(), client=httpx.Client(transport=transport))
+    with pytest.raises(RakutenAPIError, match="App IDとAccess Key"):
+        client.search(SearchCriteria(keyword="コーヒー"))
+
+
+def test_invalid_affiliate_id_retries_without_it() -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if "affiliateId" in request.url.params:
+            return httpx.Response(403, json={})
+        return httpx.Response(200, json={"Items": [], "count": 0})
+
+    client = RakutenAPIClient(
+        make_settings(), client=httpx.Client(transport=httpx.MockTransport(handler))
+    )
+    result = client.search(SearchCriteria(keyword="コーヒー"))
+
+    assert len(requests) == 2
+    assert "affiliateId" in requests[0].url.params
+    assert "affiliateId" not in requests[1].url.params
+    assert result["affiliate_id_rejected"] is True
 
 
 def test_429_uses_backoff_then_succeeds() -> None:

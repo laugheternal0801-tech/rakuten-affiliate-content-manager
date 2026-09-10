@@ -15,7 +15,9 @@ from app.repositories import (
     save_content_review,
     set_setting,
 )
+from app.research_catalog.repositories import list_content_research_links
 from app.services.compliance import check_content
+from app.services.content_generation import CHANNELS
 from app.streamlit_support import show_compliance_report
 
 STATUSES = [
@@ -44,8 +46,28 @@ with session_scope() as session:
     contents = list_contents(session)
     weekly_plan = get_setting(session, "weekly_plan", DEFAULT_WEEKLY_PLAN)
 
-if not contents:
-    st.info("投稿はまだありません。コンテンツ作成画面で下書きを保存してください。")
+requested_channel = st.session_state.pop("management_channel_request", None)
+if requested_channel in CHANNELS:
+    st.session_state["management_channel_filter"] = requested_channel
+st.session_state.setdefault("management_channel_filter", "すべて")
+
+selected_channel = st.selectbox(
+    "媒体で絞り込み",
+    ["すべて", *CHANNELS],
+    key="management_channel_filter",
+    width=240,
+)
+filtered_contents = (
+    contents
+    if selected_channel == "すべて"
+    else [content for content in contents if content.channel == selected_channel]
+)
+
+if not filtered_contents:
+    if selected_channel == "すべて":
+        st.info("投稿はまだありません。投稿文作成画面で下書きを保存してください。")
+    else:
+        st.info(f"{selected_channel}の投稿はまだありません。")
 else:
     summary = pd.DataFrame(
         [
@@ -59,7 +81,7 @@ else:
                 "更新日": content.updated_at,
                 "投稿URL": content.published_url,
             }
-            for content in contents
+            for content in filtered_contents
         ]
     )
     st.dataframe(
@@ -72,10 +94,10 @@ else:
     )
     selected_id = st.selectbox(
         "編集する投稿",
-        [content.id for content in contents],
+        [content.id for content in filtered_contents],
         format_func=lambda content_id: next(
             f"#{content.id} {content.channel}｜{content.title}"
-            for content in contents
+            for content in filtered_contents
             if content.id == content_id
         ),
     )
@@ -88,6 +110,16 @@ else:
             f"content_seo_{content.id}",
             {"seo_title": content.title, "summary": "", "hashtags": ""},
         )
+        research_links = list_content_research_links(session, content.id)
+        if research_links:
+            st.info(
+                "調査企画からの引き継ぎ: "
+                + "／".join(
+                    f"{link.brief.plan.plan_code} → {link.brief.brief_code}"
+                    for link in research_links
+                ),
+                icon=":material/account_tree:",
+            )
         with st.container(border=True):
             st.markdown("**別の商品向けに作り直す**")
             st.caption(

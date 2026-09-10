@@ -361,8 +361,10 @@ def _sanitize_config(config: Mapping[str, Any]) -> dict[str, Any]:
             if not isinstance(value, str):
                 continue
             parsed = urlparse(value)
-            if parsed.scheme == "https" and parsed.hostname == NOTE_HOST and parsed.path.endswith(
-                "/rss"
+            if (
+                parsed.scheme == "https"
+                and parsed.hostname == NOTE_HOST
+                and parsed.path.endswith("/rss")
             ):
                 safe_sources.append(value)
     return {
