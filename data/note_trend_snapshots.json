@@ -1317,6 +1317,25 @@
           "likes": 309,
           "observed_at": "2026-10-06T00:06:12.555582Z",
           "published_at": "2026-09-30T07:30:00.000+09:00"
+        },
+        {
+          "features": {
+            "blockquote_count": 2,
+            "body_chars": 2974,
+            "h2_count": 5,
+            "h3_count": 0,
+            "image_count": 0,
+            "intro_chars": 400,
+            "list_count": 0,
+            "list_item_count": 0,
+            "median_paragraph_chars": 54,
+            "paragraph_count": 51,
+            "separator_count": 0,
+            "title_chars": 24
+          },
+          "likes": 317,
+          "observed_at": "2026-10-06T22:40:29.882768Z",
+          "published_at": "2026-09-30T07:30:00.000+09:00"
         }
       ],
       "published_at": "2026-09-30T07:30:00.000+09:00",
@@ -26153,10 +26172,10 @@
   "collection_policy": "本文非保存・公開構造指標とスキ数のみ",
   "last_run": {
     "checked": 30,
-    "discovered": 23,
+    "discovered": 24,
     "successful": 1
   },
   "source": "note公式『今日の注目記事』RSS",
-  "updated_at": "2026-10-06T00:06:12.555582Z",
+  "updated_at": "2026-10-06T22:40:29.882768Z",
   "version": 1
 }
