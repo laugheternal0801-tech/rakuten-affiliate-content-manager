@@ -6958,11 +6958,11 @@
   },
   "collection_policy": "本文非保存・公開構造指標とスキ数のみ",
   "last_run": {
-    "checked": 23,
-    "discovered": 23,
+    "checked": 25,
+    "discovered": 25,
     "successful": 0
   },
   "source": "note公式『今日の注目記事』RSS",
-  "updated_at": "2026-11-06T23:13:15.757947Z",
+  "updated_at": "2026-11-07T21:55:05.025694Z",
   "version": 1
 }
