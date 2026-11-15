@@ -1,17 +1,9 @@
 {
-  "confidence": "high",
+  "confidence": "low",
   "method": "public_like_growth_and_structure_only",
-  "recommendations": {
-    "h2_count": 4,
-    "h3_count": 0,
-    "intro_chars": 320,
-    "list_count": 0,
-    "paragraph_chars": 85,
-    "separator_count": 0,
-    "title_chars": 25
-  },
-  "sample_size": 20,
-  "status": "active",
-  "updated_at": "2026-11-14T22:29:29.189695Z",
+  "recommendations": {},
+  "sample_size": 3,
+  "status": "warming_up",
+  "updated_at": "2026-11-15T22:53:15.206983Z",
   "version": 1
 }
